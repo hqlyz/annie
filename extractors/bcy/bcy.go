@@ -4,10 +4,10 @@ import (
 	"encoding/json"
 	"strings"
 
-	"github.com/iawia002/annie/downloader"
-	"github.com/iawia002/annie/parser"
-	"github.com/iawia002/annie/request"
-	"github.com/iawia002/annie/utils"
+	"github.com/hqlyz/annie/downloader"
+	"github.com/hqlyz/annie/parser"
+	"github.com/hqlyz/annie/request"
+	"github.com/hqlyz/annie/utils"
 )
 
 type bcyData struct {

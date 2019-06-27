@@ -6,7 +6,7 @@ import (
 
 	"github.com/fatih/color"
 
-	"github.com/iawia002/annie/config"
+	"github.com/hqlyz/annie/config"
 )
 
 // URL data struct for single URL information
@@ -41,7 +41,7 @@ type Data struct {
 
 	// Err is used to record whether an error occurred when extracting data.
 	// It is used to record the error information corresponding to each url when extracting the list data.
-	// NOTE(iawia002): err is only used in Data list
+	// NOTE(hqlyz): err is only used in Data list
 	Err error `json:"-"`
 	// URL is used to record the address of this download
 	URL string `json:"url"`

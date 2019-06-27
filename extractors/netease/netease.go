@@ -5,9 +5,9 @@ import (
 	netURL "net/url"
 	"strings"
 
-	"github.com/iawia002/annie/downloader"
-	"github.com/iawia002/annie/request"
-	"github.com/iawia002/annie/utils"
+	"github.com/hqlyz/annie/downloader"
+	"github.com/hqlyz/annie/request"
+	"github.com/hqlyz/annie/utils"
 )
 
 // Extract is the main function for extracting data

@@ -3,8 +3,8 @@ package tumblr
 import (
 	"testing"
 
-	"github.com/iawia002/annie/config"
-	"github.com/iawia002/annie/test"
+	"github.com/hqlyz/annie/config"
+	"github.com/hqlyz/annie/test"
 )
 
 func TestDownload(t *testing.T) {

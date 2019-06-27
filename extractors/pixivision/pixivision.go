@@ -1,9 +1,9 @@
 package pixivision
 
 import (
-	"github.com/iawia002/annie/downloader"
-	"github.com/iawia002/annie/parser"
-	"github.com/iawia002/annie/request"
+	"github.com/hqlyz/annie/downloader"
+	"github.com/hqlyz/annie/parser"
+	"github.com/hqlyz/annie/request"
 )
 
 // Extract is the main function for extracting data

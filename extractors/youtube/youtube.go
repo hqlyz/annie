@@ -7,10 +7,10 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/iawia002/annie/config"
-	"github.com/iawia002/annie/downloader"
-	"github.com/iawia002/annie/request"
-	"github.com/iawia002/annie/utils"
+	"github.com/hqlyz/annie/config"
+	"github.com/hqlyz/annie/downloader"
+	"github.com/hqlyz/annie/request"
+	"github.com/hqlyz/annie/utils"
 )
 
 type args struct {
@@ -198,7 +198,7 @@ func extractVideoURLS(data youtubeData, referer string) (map[string]downloader.S
 		if err != nil {
 			// some stream of the video will return a 404 error,
 			// I don't know if it is a problem with the signature algorithm.
-			// https://github.com/iawia002/annie/issues/322
+			// https://github.com/hqlyz/annie/issues/322
 			continue
 		}
 		urlData := downloader.URL{
@@ -224,7 +224,7 @@ func extractVideoURLS(data youtubeData, referer string) (map[string]downloader.S
 
 	// Unlike `url_encoded_fmt_stream_map`, all videos in `adaptive_fmts` have no sound,
 	// we need download video and audio both and then merge them.
-	// Another problem is that even if we add `ratebypass=yes`, the download speed still slow sometimes. https://github.com/iawia002/annie/issues/191#issuecomment-405449649
+	// Another problem is that even if we add `ratebypass=yes`, the download speed still slow sometimes. https://github.com/hqlyz/annie/issues/191#issuecomment-405449649
 
 	// All videos here have no sound and need to be added separately
 	for itag, f := range streams {

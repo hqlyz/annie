@@ -3,7 +3,7 @@ package request
 import (
 	"testing"
 
-	"github.com/iawia002/annie/config"
+	"github.com/hqlyz/annie/config"
 )
 
 func TestGet(t *testing.T) {

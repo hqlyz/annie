@@ -4,7 +4,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/iawia002/annie/config"
+	"github.com/hqlyz/annie/config"
 )
 
 // NeedDownloadList return the indices of playlist that need download
