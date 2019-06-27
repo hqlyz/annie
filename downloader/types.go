@@ -47,6 +47,21 @@ type Data struct {
 	URL string `json:"url"`
 }
 
+// OutputData for api
+type OutputData struct {
+	Title   string         `json:"title"`
+	URL     string         `json:"url"`
+	Streams []OutputStream `json:"streams"`
+}
+
+// OutputStream for api
+type OutputStream struct {
+	Quality string `json:"quality"`
+	Type    string `json:"type"`
+	Size    int64  `json:"size"`
+	Itag    string `json:"itag"`
+}
+
 // EmptyList empty Data list
 var EmptyList = make([]Data, 0)
 
