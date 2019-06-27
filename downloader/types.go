@@ -44,7 +44,8 @@ type Data struct {
 	// NOTE(hqlyz): err is only used in Data list
 	Err error `json:"-"`
 	// URL is used to record the address of this download
-	URL string `json:"url"`
+	URL                 string `json:"url"`
+	OutputSortedStreams []Stream
 }
 
 // OutputData for api
@@ -116,7 +117,19 @@ func (v *Data) genSortedStreams() {
 
 // SortStreams for api
 func (v *Data) SortStreams() {
-	v.genSortedStreams()
+	for k, data := range v.Streams {
+		if data.Size == 0 {
+			data.calculateTotalSize()
+		}
+		data.name = k
+		v.Streams[k] = data
+		v.OutputSortedStreams = append(v.OutputSortedStreams, data)
+	}
+	if len(v.Streams) > 1 {
+		sort.Slice(
+			v.OutputSortedStreams, func(i, j int) bool { return v.OutputSortedStreams[i].Size > v.OutputSortedStreams[j].Size },
+		)
+	}
 }
 
 func (v *Data) printInfo(stream string) {
