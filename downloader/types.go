@@ -28,6 +28,7 @@ type Stream struct {
 
 	// name used in sortedStreams
 	name string
+	Itag string `json:"name"`
 }
 
 // Data data struct for video information
@@ -121,7 +122,7 @@ func (v *Data) SortStreams() {
 		if data.Size == 0 {
 			data.calculateTotalSize()
 		}
-		data.name = k
+		data.Itag = k
 		v.Streams[k] = data
 		v.OutputSortedStreams = append(v.OutputSortedStreams, data)
 	}
