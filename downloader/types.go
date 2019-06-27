@@ -114,6 +114,11 @@ func (v *Data) genSortedStreams() {
 	}
 }
 
+// SortStreams for api
+func (v *Data) SortStreams() {
+	v.genSortedStreams()
+}
+
 func (v *Data) printInfo(stream string) {
 	cyan := color.New(color.FgCyan)
 	fmt.Println()
