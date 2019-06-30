@@ -157,6 +157,7 @@ func fragmentDownload(destURL string, headers map[string]string, bar *pb.Progres
 	defer wg.Done()
 }
 
+/* original version */
 // func writeFile(
 // 	url string, file *os.File, headers map[string]string, bar *pb.ProgressBar,
 // ) (int64, error) {
