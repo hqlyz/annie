@@ -365,14 +365,14 @@ func Download(v Data, refer string, chunkSizeMB int) error {
 		return nil
 	}
 	bar := progressBar(data.Size)
-	bar.Start()
+	// bar.Start()
 	if len(data.URLs) == 1 {
 		// only one fragment
 		err := Save(data.URLs[0], refer, title, bar, chunkSizeMB)
 		if err != nil {
 			return err
 		}
-		bar.Finish()
+		// bar.Finish()
 		return nil
 	}
 	wgp := utils.NewWaitGroupPool(config.ThreadNumber)
@@ -400,7 +400,7 @@ func Download(v Data, refer string, chunkSizeMB int) error {
 	if len(errs) > 0 {
 		return errs[0]
 	}
-	bar.Finish()
+	// bar.Finish()
 
 	if v.Type != "video" {
 		return nil
