@@ -93,9 +93,12 @@ func writeFile(
 		}
 		seek := fragmentSize * int64(i)
 		ranges := fmt.Sprintf("bytes=%d-%d", seek, seek+fNum-1)
-		// header := make(map[string]string)
-		headers["Range"] = ranges
-		go fragmentDownload(url, headers, nil, fileName)
+		header := make(map[string]string)
+		for k, v := range headers {
+			header[k] = v
+		}
+		header["Range"] = ranges
+		go fragmentDownload(url, header, nil, fileName)
 	}
 	wg.Wait()
 
