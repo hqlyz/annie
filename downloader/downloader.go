@@ -1,12 +1,16 @@
 package downloader
 
 import (
+	"bufio"
 	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
+	"math"
 	"net/http"
 	"os"
+	"strconv"
+	"sync"
 	"time"
 
 	"github.com/cheggaaa/pb"
@@ -14,6 +18,9 @@ import (
 	"github.com/hqlyz/annie/request"
 	"github.com/hqlyz/annie/utils"
 )
+
+var wg = sync.WaitGroup{}
+var mBytes = 1024 * 1024
 
 func progressBar(size int64) *pb.ProgressBar {
 	bar := pb.New64(size).SetUnits(pb.U_BYTES).SetRefreshRate(time.Millisecond * 10)
@@ -49,20 +56,102 @@ func Caption(url, refer, fileName, ext string) error {
 func writeFile(
 	url string, file *os.File, headers map[string]string, bar *pb.ProgressBar,
 ) (int64, error) {
-	res, err := request.Request("GET", url, nil, headers)
+	var (
+		res *http.Response
+		err error
+	)
+	res, err = request.Request("GET", url, nil, headers)
 	if err != nil {
 		return 0, err
 	}
 	defer res.Body.Close()
-	writer := io.MultiWriter(file, bar)
-	// Note that io.Copy reads 32kb(maximum) from input and writes them to output, then repeats.
-	// So don't worry about memory.
-	written, copyErr := io.Copy(writer, res.Body)
-	if copyErr != nil {
-		return written, fmt.Errorf("file copy error: %s", copyErr)
+	l := res.Header.Get("Content-Length")
+	length, _ := strconv.ParseInt(l, 10, 64)
+	var goroutineNum int
+	if length <= int64(10*mBytes) {
+		goroutineNum = int(math.Ceil(float64(length) / float64(mBytes)))
+	} else if length <= int64(100*mBytes) {
+		goroutineNum = 10
+	} else if length <= int64(200*mBytes) {
+		goroutineNum = 20
+	} else if length <= int64(300*mBytes) {
+		goroutineNum = 30
+	} else if length <= int64(400*mBytes) {
+		goroutineNum = 40
+	} else {
+		goroutineNum = 50
 	}
-	return written, nil
+	fragmentSize := int64(math.Ceil(float64(length) / float64(goroutineNum)))
+	wg.Add(goroutineNum)
+	var fNum int64
+	for i := 0; i < goroutineNum; i++ {
+		fileName := "test.download" + strconv.Itoa(i)
+		if i == (goroutineNum - 1) {
+			fNum = length - (int64(goroutineNum-1))*fragmentSize
+		} else {
+			fNum = fragmentSize
+		}
+		seek := fragmentSize * int64(i)
+		ranges := fmt.Sprintf("bytes=%d-%d", seek, seek+fNum-1)
+		// header := make(map[string]string)
+		headers["Range"] = ranges
+		go fragmentDownload(url, headers, nil, fileName)
+	}
+	wg.Wait()
+	return length, nil
 }
+
+func fragmentDownload(destURL string, headers map[string]string, bar *pb.ProgressBar, fileName string) {
+	var (
+		res *http.Response
+		err error
+	)
+	res, err = request.Request("GET", destURL, nil, headers)
+	if err != nil {
+		return
+	}
+	defer res.Body.Close()
+	file, err := os.Create(fileName)
+	if err != nil {
+		return
+	}
+	// writer := io.MultiWriter(file, bar)
+	// _, err = io.Copy(file, res.Body)
+	buffer := make([]byte, 4*1024)
+	myReader := bufio.NewReader(res.Body)
+	myWriter := bufio.NewWriter(file)
+	var (
+		n int
+	)
+	for n, err = 0, error(nil); err == nil && err != io.EOF; {
+		n, err = myReader.Read(buffer)
+		myWriter.Write(buffer[:n])
+	}
+	myWriter.Flush()
+	file.Close()
+	if err != nil && err != io.EOF {
+		return
+	}
+	defer wg.Done()
+}
+
+// func writeFile(
+// 	url string, file *os.File, headers map[string]string, bar *pb.ProgressBar,
+// ) (int64, error) {
+// 	res, err := request.Request("GET", url, nil, headers)
+// 	if err != nil {
+// 		return 0, err
+// 	}
+// 	defer res.Body.Close()
+// 	writer := io.MultiWriter(file, bar)
+// 	// Note that io.Copy reads 32kb(maximum) from input and writes them to output, then repeats.
+// 	// So don't worry about memory.
+// 	written, copyErr := io.Copy(writer, res.Body)
+// 	if copyErr != nil {
+// 		return written, fmt.Errorf("file copy error: %s", copyErr)
+// 	}
+// 	return written, nil
+// }
 
 // Save save url file
 func Save(
@@ -77,14 +166,14 @@ func Save(
 	if err != nil {
 		return err
 	}
-	if bar == nil {
-		bar = progressBar(urlData.Size)
-		bar.Start()
-	}
+	// if bar == nil {
+	// 	bar = progressBar(urlData.Size)
+	// 	bar.Start()
+	// }
 	// Skip segment file
 	// TODO: Live video URLs will not return the size
 	if exists && fileSize == urlData.Size {
-		bar.Add64(fileSize)
+		// bar.Add64(fileSize)
 		return nil
 	}
 	tempFilePath := filePath + ".download"
@@ -103,7 +192,7 @@ func Save(
 		// range start from 0, 0-1023 means the first 1024 bytes of the file
 		headers["Range"] = fmt.Sprintf("bytes=%d-", tempFileSize)
 		file, fileError = os.OpenFile(tempFilePath, os.O_APPEND|os.O_WRONLY, 0644)
-		bar.Add64(tempFileSize)
+		// bar.Add64(tempFileSize)
 	} else {
 		file, fileError = os.Create(tempFilePath)
 	}
