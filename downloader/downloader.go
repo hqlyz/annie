@@ -98,29 +98,28 @@ func writeFile(
 		go fragmentDownload(url, headers, nil, fileName)
 	}
 	wg.Wait()
+
 	// merge files
-	// newFile, err := os.OpenFile("good.webm", os.O_CREATE|os.O_APPEND|os.O_RDWR, 0666)
-	if err != nil {
-		return 0, err
-	}
-	for i := 0; i < goroutineNum; i++ {
-		tempFile, err := os.Open("test.download" + strconv.Itoa(i))
-		fileInfo, _ := tempFile.Stat()
-		fmt.Printf("file size: %d\n", fileInfo.Size())
-		if err != nil {
-			return 0, err
-		}
-		seek := int64(i) * fragmentSize
-		file.Seek(seek, 0)
-		io.Copy(file, tempFile)
-		tempFile.Close()
-		err = os.Remove("test.download" + strconv.Itoa(i))
-		if err != nil {
-			return 0, err
-		}
-		time.Sleep(10 * time.Millisecond)
-	}
-	// newFile.Close()
+	// if err != nil {
+	// 	return 0, err
+	// }
+	// for i := 0; i < goroutineNum; i++ {
+	// 	tempFile, err := os.Open("test.download" + strconv.Itoa(i))
+	// 	fileInfo, _ := tempFile.Stat()
+	// 	fmt.Printf("file size: %d\n", fileInfo.Size())
+	// 	if err != nil {
+	// 		return 0, err
+	// 	}
+	// 	seek := int64(i) * fragmentSize
+	// 	file.Seek(seek, 0)
+	// 	io.Copy(file, tempFile)
+	// 	tempFile.Close()
+	// 	err = os.Remove("test.download" + strconv.Itoa(i))
+	// 	if err != nil {
+	// 		return 0, err
+	// 	}
+	// 	time.Sleep(10 * time.Millisecond)
+	// }
 	return length, nil
 }
 
