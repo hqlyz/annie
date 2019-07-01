@@ -60,6 +60,7 @@ func writeFile(
 		res *http.Response
 		err error
 	)
+	fmt.Printf("file name: %s\n", file.Name())
 	res, err = request.Request("GET", url, nil, headers)
 	if err != nil {
 		return 0, err
