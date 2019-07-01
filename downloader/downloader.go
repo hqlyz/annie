@@ -86,7 +86,7 @@ func writeFile(
 	wg.Add(goroutineNum)
 	var fNum int64
 	for i := 0; i < goroutineNum; i++ {
-		fileName := "test.download" + strconv.Itoa(i)
+		fileName := file.Name() + strconv.Itoa(i)
 		if i == (goroutineNum - 1) {
 			fNum = length - (int64(goroutineNum-1))*fragmentSize
 		} else {
@@ -108,7 +108,7 @@ func writeFile(
 		return 0, err
 	}
 	for i := 0; i < goroutineNum; i++ {
-		tempFile, err := os.Open("test.download" + strconv.Itoa(i))
+		tempFile, err := os.Open(file.Name() + strconv.Itoa(i))
 		fileInfo, _ := tempFile.Stat()
 		fmt.Printf("file size: %d\n", fileInfo.Size())
 		if err != nil {
@@ -118,7 +118,7 @@ func writeFile(
 		file.Seek(seek, 0)
 		io.Copy(file, tempFile)
 		tempFile.Close()
-		err = os.Remove("test.download" + strconv.Itoa(i))
+		err = os.Remove(file.Name() + strconv.Itoa(i))
 		if err != nil {
 			return 0, err
 		}
