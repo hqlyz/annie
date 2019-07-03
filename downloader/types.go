@@ -58,10 +58,10 @@ type OutputData struct {
 
 // OutputStream for api
 type OutputStream struct {
-	Quality string `json:"quality"`
-	Type    string `json:"type"`
-	Size    int64  `json:"size"`
-	Itag    string `json:"itag"`
+	Quality        string `json:"quality"`
+	Type           string `json:"type"`
+	Size           int64  `json:"size"`
+	DownloadParams string `json:"params"`
 }
 
 // EmptyList empty Data list
