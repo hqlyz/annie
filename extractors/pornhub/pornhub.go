@@ -3,6 +3,7 @@ package pornhub
 import (
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 
 	"github.com/hqlyz/annie/downloader"
 	"github.com/hqlyz/annie/request"
@@ -31,6 +32,7 @@ func Extract(url string) ([]downloader.Data, error) {
 	}
 
 	realURLs := utils.MatchOneOf(html, `"mediaDefinitions":(.+?),"isVertical"`)
+	ioutil.WriteFile("ph.txt", []byte(realURLs[1]), 0666)
 
 	var pornhubs []pornhubData
 	err = json.Unmarshal([]byte(realURLs[1]), &pornhubs)

@@ -4,10 +4,13 @@ import (
 	"bufio"
 	"flag"
 	"fmt"
+	"github.com/patrickmn/go-cache"
 	"io/ioutil"
 	"net/url"
 	"os"
 	"strings"
+	"time"
+	"videostudioapi/mycache"
 
 	"github.com/fatih/color"
 
@@ -165,6 +168,7 @@ func download(videoURL string) bool {
 		return true
 	}
 	var isErr bool
+	mycache.Cache = cache.New(time.Hour*2, time.Minute*5)
 	for _, item := range data {
 		if item.Err != nil {
 			// if this error occurs, the preparation step is normal, but the data extraction is wrong.
@@ -173,7 +177,7 @@ func download(videoURL string) bool {
 			isErr = true
 			continue
 		}
-		err = downloader.Download(item, videoURL, config.ChunkSizeMB)
+		err = downloader.Download(item, videoURL, config.ChunkSizeMB, mycache.Cache, "lalala", 100)
 		if err != nil {
 			printError(item.URL, err)
 			isErr = true
