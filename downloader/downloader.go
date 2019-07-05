@@ -427,6 +427,6 @@ func Download(v Data, refer string, chunkSizeMB int, cacheJL *cache.Cache, token
 	return nil
 }
 
-func splitVideoQuality(quality string) {
+func splitVideoQuality(quality string) string {
 	return strings.Split(quality, " ")[0]
 }
