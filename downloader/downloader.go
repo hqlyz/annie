@@ -55,12 +55,12 @@ func Caption(url, refer, fileName, ext string) error {
 	return nil
 }
 
-func writeFile(url string, file *os.File, headers map[string]string, bar *pb.ProgressBar, cacheJL *cache.Cache, token string, totalSize int64) (int64, error) {
+func writeFile(url string, file *os.File, headers map[string]string, bar *pb.ProgressBar, cacheJL *cache.Cache, token string) (int64, error) {
 	var (
 		res *http.Response
 		err error
 	)
-	cacheJL.Set(token, 0, cache.DefaultExpiration)
+	cacheJL.Set(token, int64(0), cache.DefaultExpiration)
 	res, err = request.Request("GET", url, nil, headers)
 	if err != nil {
 		return 0, err
@@ -99,7 +99,7 @@ func writeFile(url string, file *os.File, headers map[string]string, bar *pb.Pro
 			header[k] = v
 		}
 		header["Range"] = ranges
-		go fragmentDownload(url, header, nil, fileName, cacheJL, token, totalSize)
+		go fragmentDownload(url, header, nil, fileName, cacheJL, token)
 	}
 	wg.Wait()
 	// num := 0
@@ -133,7 +133,7 @@ func writeFile(url string, file *os.File, headers map[string]string, bar *pb.Pro
 	return length, nil
 }
 
-func fragmentDownload(destURL string, headers map[string]string, bar *pb.ProgressBar, fileName string, cacheJL *cache.Cache, token string, totalSize int64) {
+func fragmentDownload(destURL string, headers map[string]string, bar *pb.ProgressBar, fileName string, cacheJL *cache.Cache, token string) {
 	var (
 		res *http.Response
 		err error
@@ -147,8 +147,6 @@ func fragmentDownload(destURL string, headers map[string]string, bar *pb.Progres
 	if err != nil {
 		return
 	}
-	// writer := io.MultiWriter(file, bar)
-	// _, err = io.Copy(file, res.Body)
 	buffer := make([]byte, 4*1024)
 	myReader := bufio.NewReader(res.Body)
 	myWriter := bufio.NewWriter(file)
@@ -188,7 +186,7 @@ func fragmentDownload(destURL string, headers map[string]string, bar *pb.Progres
 // }
 
 // Save save url file
-func Save(urlData URL, refer, fileName string, bar *pb.ProgressBar, chunkSizeMB int, cacheJL *cache.Cache, token string, totalSize int64) error {
+func Save(urlData URL, refer, fileName string, bar *pb.ProgressBar, chunkSizeMB int, cacheJL *cache.Cache, token string) error {
 	var err error
 	filePath, err := utils.FilePath(fileName, urlData.Ext, false)
 	if err != nil {
@@ -250,7 +248,7 @@ func Save(urlData URL, refer, fileName string, bar *pb.ProgressBar, chunkSizeMB 
 			headers["Range"] = fmt.Sprintf("bytes=%d-%d", start, end)
 			temp := start
 			for i := 0; ; i++ {
-				written, err := writeFile(urlData.URL, file, headers, bar, cacheJL, token, totalSize)
+				written, err := writeFile(urlData.URL, file, headers, bar, cacheJL, token)
 				if err == nil {
 					break
 				} else if i+1 >= config.RetryTimes {
@@ -265,7 +263,7 @@ func Save(urlData URL, refer, fileName string, bar *pb.ProgressBar, chunkSizeMB 
 	} else {
 		temp := tempFileSize
 		for i := 0; ; i++ {
-			written, err := writeFile(urlData.URL, file, headers, bar, cacheJL, token, totalSize)
+			written, err := writeFile(urlData.URL, file, headers, bar, cacheJL, token)
 			if err == nil {
 				break
 			} else if i+1 >= config.RetryTimes {
@@ -290,7 +288,7 @@ func Save(urlData URL, refer, fileName string, bar *pb.ProgressBar, chunkSizeMB 
 }
 
 // Download download urls
-func Download(v Data, refer string, chunkSizeMB int, cacheJL *cache.Cache, token string, totalSize int64) error {
+func Download(v Data, refer string, chunkSizeMB int, cacheJL *cache.Cache, token string) error {
 	v.genSortedStreams()
 	if config.ExtractedData {
 		jsonData, _ := json.MarshalIndent(v, "", "    ")
@@ -374,7 +372,7 @@ func Download(v Data, refer string, chunkSizeMB int, cacheJL *cache.Cache, token
 	// bar.Start()
 	if len(data.URLs) == 1 {
 		// only one fragment
-		err := Save(data.URLs[0], refer, title, bar, chunkSizeMB, cacheJL, token, totalSize)
+		err := Save(data.URLs[0], refer, title, bar, chunkSizeMB, cacheJL, token)
 		if err != nil {
 			return err
 		}
@@ -396,7 +394,7 @@ func Download(v Data, refer string, chunkSizeMB int, cacheJL *cache.Cache, token
 		wgp.Add()
 		go func(url URL, refer, fileName string, bar *pb.ProgressBar) {
 			defer wgp.Done()
-			err := Save(url, refer, fileName, bar, chunkSizeMB, cacheJL, token, totalSize)
+			err := Save(url, refer, fileName, bar, chunkSizeMB, cacheJL, token)
 			if err != nil {
 				errs = append(errs, err)
 			}
