@@ -156,7 +156,7 @@ func fragmentDownload(destURL string, headers map[string]string, bar *pb.Progres
 	for n, err = 0, error(nil); err == nil && err != io.EOF; {
 		n, err = myReader.Read(buffer)
 		myWriter.Write(buffer[:n])
-		cacheJL.Increment(token, int64(n))
+		cacheJL.Increment(token+"d", int64(n))
 	}
 	myWriter.Flush()
 	file.Close()
