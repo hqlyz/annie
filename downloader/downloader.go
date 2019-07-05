@@ -403,6 +403,7 @@ func Download(v Data, refer string, chunkSizeMB int, cacheJL *cache.Cache, token
 			}
 		}(url, refer, partFileName, bar)
 	}
+	cacheJL.Set(token+"c", mergedFilePath, time.Minute*5)
 	wgp.Wait()
 	if len(errs) > 0 {
 		return errs[0]
@@ -410,12 +411,10 @@ func Download(v Data, refer string, chunkSizeMB int, cacheJL *cache.Cache, token
 	// bar.Finish()
 
 	if v.Type != "video" {
-		// cacheJL.Set(token+"c", data.Size, time.Minute*5)
 		return nil
 	}
 	// merge
 	fmt.Printf("Merging video parts into %s\n", mergedFilePath)
-	cacheJL.Set(token+"c", mergedFilePath, time.Minute*5)
 	if v.Site == "YouTube youtube.com" {
 		err = utils.MergeAudioAndVideo(parts, mergedFilePath)
 	} else {
