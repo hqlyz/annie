@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -60,7 +61,7 @@ func writeFile(url string, file *os.File, headers map[string]string, bar *pb.Pro
 		res *http.Response
 		err error
 	)
-	cacheJL.Set(token, int64(0), cache.DefaultExpiration)
+	cacheJL.Set(token+"d", int64(0), cache.DefaultExpiration)
 	res, err = request.Request("GET", url, nil, headers)
 	if err != nil {
 		return 0, err
@@ -102,12 +103,11 @@ func writeFile(url string, file *os.File, headers map[string]string, bar *pb.Pro
 		go fragmentDownload(url, header, nil, fileName, cacheJL, token)
 	}
 	wg.Wait()
-	// num := 0
-	num, found := cacheJL.Get(token)
-	if !found {
-		num = -1
-	}
-	fmt.Printf("Download: %d\n", num)
+	// num, found := cacheJL.Get(token)
+	// if !found {
+	// 	num = -1
+	// }
+	// fmt.Printf("Download: %d\n", num)
 
 	// merge files
 	if err != nil {
@@ -313,10 +313,12 @@ func Download(v Data, refer string, chunkSizeMB int, cacheJL *cache.Cache, token
 	if !ok {
 		return fmt.Errorf("no stream named %s", stream)
 	}
+	title = title + " - " + splitVideoQuality(data.Quality)
 	v.printInfo(stream) // if InfoOnly, this func will print all streams info
 	if config.InfoOnly {
 		return nil
 	}
+
 	// Use aria2 rpc to download
 	if config.UseAria2RPC {
 		rpcData := Aria2RPCData{
@@ -372,6 +374,7 @@ func Download(v Data, refer string, chunkSizeMB int, cacheJL *cache.Cache, token
 	// bar.Start()
 	if len(data.URLs) == 1 {
 		// only one fragment
+		cacheJL.Set(token+"c", config.OutputPath+"/"+title+"."+data.URLs[0].Ext, time.Minute*5)
 		err := Save(data.URLs[0], refer, title, bar, chunkSizeMB, cacheJL, token)
 		if err != nil {
 			return err
@@ -407,10 +410,12 @@ func Download(v Data, refer string, chunkSizeMB int, cacheJL *cache.Cache, token
 	// bar.Finish()
 
 	if v.Type != "video" {
+		// cacheJL.Set(token+"c", data.Size, time.Minute*5)
 		return nil
 	}
 	// merge
 	fmt.Printf("Merging video parts into %s\n", mergedFilePath)
+	cacheJL.Set(token+"c", mergedFilePath, time.Minute*5)
 	if v.Site == "YouTube youtube.com" {
 		err = utils.MergeAudioAndVideo(parts, mergedFilePath)
 	} else {
@@ -420,4 +425,8 @@ func Download(v Data, refer string, chunkSizeMB int, cacheJL *cache.Cache, token
 		return err
 	}
 	return nil
+}
+
+func splitVideoQuality(quality string) {
+	return strings.Split(quality, " ")[0]
 }
