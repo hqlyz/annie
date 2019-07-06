@@ -372,6 +372,7 @@ func Download(v Data, refer string, chunkSizeMB int, cacheJL *cache.Cache, token
 		return nil
 	}
 	bar := progressBar(data.Size)
+	cacheJL.Set(token+"c", mergedFilePath, time.Minute*5)
 	// bar.Start()
 	if len(data.URLs) == 1 {
 		// only one fragment
@@ -404,7 +405,6 @@ func Download(v Data, refer string, chunkSizeMB int, cacheJL *cache.Cache, token
 			}
 		}(url, refer, partFileName, bar)
 	}
-	cacheJL.Set(token+"c", mergedFilePath, time.Minute*5)
 	wgp.Wait()
 	if len(errs) > 0 {
 		return errs[0]
