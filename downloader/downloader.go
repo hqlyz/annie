@@ -374,10 +374,10 @@ func Download(v Data, refer string, chunkSizeMB int, cacheJL *cache.Cache, token
 		convertCacheValue = mergedFilePath
 	}
 
+	cacheJL.Set(token+"c", convertCacheValue, time.Minute*5)
 	if mergedFileExists {
 		fmt.Printf("%s: file already exists, skipping\n", mergedFilePath)
 		cacheJL.Set(token+"d", data.Size, time.Minute*10)
-		cacheJL.Set(token+"c", convertCacheValue, time.Minute*5)
 		return nil
 	}
 	bar := progressBar(data.Size)
