@@ -366,7 +366,6 @@ func Download(v Data, refer string, chunkSizeMB int, cacheJL *cache.Cache, token
 		return err
 	}
 	// After the merge, the file size has changed, so we do not check whether the size matches
-	// cacheJL.Set(token+"c", mergedFilePath, time.Minute*5)
 	var convertCacheValue string
 	if len(data.URLs) == 1 {
 		convertCacheValue = config.OutputPath + "/" + title + "." + data.URLs[0].Ext
@@ -374,7 +373,7 @@ func Download(v Data, refer string, chunkSizeMB int, cacheJL *cache.Cache, token
 		convertCacheValue = mergedFilePath
 	}
 
-	cacheJL.Set(token+"c", convertCacheValue, time.Minute*5)
+	cacheJL.Set(token+"c", convertCacheValue, time.Minute*60)
 	if mergedFileExists {
 		fmt.Printf("%s: file already exists, skipping\n", mergedFilePath)
 		cacheJL.Set(token+"d", data.Size, time.Minute*10)
@@ -384,8 +383,7 @@ func Download(v Data, refer string, chunkSizeMB int, cacheJL *cache.Cache, token
 	// bar.Start()
 	if len(data.URLs) == 1 {
 		// only one fragment
-		// cacheJL.Set(token+"c", config.OutputPath+"/"+title+"."+data.URLs[0].Ext, time.Minute*5)
-		cacheJL.Set(token+"c", convertCacheValue, time.Minute*5)
+		cacheJL.Set(token+"c", convertCacheValue, time.Minute*60)
 		err := Save(data.URLs[0], refer, title, bar, chunkSizeMB, cacheJL, token)
 		if err != nil {
 			return err
