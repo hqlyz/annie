@@ -61,7 +61,7 @@ func writeFile(url string, file *os.File, headers map[string]string, bar *pb.Pro
 		res *http.Response
 		err error
 	)
-	cacheJL.Set(token+"d", int64(0), cache.DefaultExpiration)
+	cacheJL.Set(token+"d", int64(0), time.Minute*10)
 	res, err = request.Request("GET", url, nil, headers)
 	if err != nil {
 		return 0, err
@@ -368,6 +368,7 @@ func Download(v Data, refer string, chunkSizeMB int, cacheJL *cache.Cache, token
 	// After the merge, the file size has changed, so we do not check whether the size matches
 	if mergedFileExists {
 		fmt.Printf("%s: file already exists, skipping\n", mergedFilePath)
+		cacheJL.Set(token+"d", data.Size, time.Minute*10)
 		return nil
 	}
 	bar := progressBar(data.Size)
