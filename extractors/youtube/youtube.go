@@ -77,6 +77,7 @@ func genSignedURL(streamURL string, stream url.Values, js string) (string, error
 		realURL, sig string
 		err          error
 	)
+	// fmt.Println(streamURL)
 	if strings.Contains(streamURL, "signature=") {
 		// URL itself already has a signature parameter
 		realURL = streamURL
@@ -171,10 +172,10 @@ func youtubeDownload(uri string) downloader.Data {
 	if err != nil {
 		return downloader.EmptyData(uri, err)
 	}
-	fmt.Println(ytThumbnail.VideoDetails.Thumbnail.Thumbnails[1].URL)
-	fmt.Println(ytThumbnail.VideoDetails.Thumbnail.Thumbnails[1].Width)
-	fmt.Println(ytThumbnail.VideoDetails.Thumbnail.Thumbnails[1].Height)
-	fmt.Println(ytThumbnail.VideoDetails.LengthSeconds)
+	// fmt.Println(ytThumbnail.VideoDetails.Thumbnail.Thumbnails[1].URL)
+	// fmt.Println(ytThumbnail.VideoDetails.Thumbnail.Thumbnails[1].Width)
+	// fmt.Println(ytThumbnail.VideoDetails.Thumbnail.Thumbnails[1].Height)
+	// fmt.Println(ytThumbnail.VideoDetails.LengthSeconds)
 
 	streams, err := extractVideoURLS(youtube, uri)
 	if err != nil {
@@ -230,11 +231,11 @@ func extractVideoURLS(data youtubeData, referer string) (map[string]downloader.S
 		} else {
 			ext = utils.MatchOneOf(streamType, `(\w+)/(\w+);`)[2]
 		}
-		realURL, err := genSignedURL(stream.Get("url"), stream, data.Assets.JS)
-		if err != nil {
-			return nil, err
-		}
-		// realURL := stream.Get("url")
+		// realURL, err := genSignedURL(stream.Get("url"), stream, data.Assets.JS)
+		// if err != nil {
+		// 	return nil, err
+		// }
+		realURL := stream.Get("url")
 		// size, err := request.Size(realURL, referer)
 		sizeStr := stream.Get("clen")
 		size := int64(0)
