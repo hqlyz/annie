@@ -235,7 +235,11 @@ func extractVideoURLS(data youtubeData, referer string) (map[string]downloader.S
 		// if err != nil {
 		// 	return nil, err
 		// }
-		realURL := stream.Get("url")
+		realURL, err := getDownloadURL(stream, data.Assets.JS)
+		if err != nil {
+			return nil, err
+		}
+		// realURL := stream.Get("url")
 		// size, err := request.Size(realURL, referer)
 		sizeStr := stream.Get("clen")
 		size := int64(0)
