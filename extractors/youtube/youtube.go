@@ -230,11 +230,11 @@ func extractVideoURLS(data youtubeData, referer string) (map[string]downloader.S
 		} else {
 			ext = utils.MatchOneOf(streamType, `(\w+)/(\w+);`)[2]
 		}
-		// realURL, err := genSignedURL(stream.Get("url"), stream, data.Assets.JS)
-		// if err != nil {
-		// 	return nil, err
-		// }
-		realURL := stream.Get("url")
+		realURL, err := genSignedURL(stream.Get("url"), stream, data.Assets.JS)
+		if err != nil {
+			return nil, err
+		}
+		// realURL := stream.Get("url")
 		// size, err := request.Size(realURL, referer)
 		sizeStr := stream.Get("clen")
 		size := int64(0)
