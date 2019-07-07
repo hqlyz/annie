@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"net/url"
 	"strings"
 
@@ -132,6 +133,7 @@ func youtubeDownload(uri string) downloader.Data {
 		vid[1],
 	)
 	html, err := request.Get(videoURL, referer, nil)
+	ioutil.WriteFile("html.html", []byte(html), 0666)
 	if err != nil {
 		return downloader.EmptyData(uri, err)
 	}
