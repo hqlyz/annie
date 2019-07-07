@@ -151,7 +151,7 @@ func youtubeDownload(uri string) downloader.Data {
 	var youtube youtubeData
 	json.Unmarshal([]byte(ytplayer), &youtube)
 	title := youtube.Args.Title
-	fmt.Printf("thumbnail: %s\n", youtube.Thumbnail.Thumbnails[0].URL)
+	fmt.Println(youtube)
 
 	streams, err := extractVideoURLS(youtube, uri)
 	if err != nil {
@@ -159,12 +159,12 @@ func youtubeDownload(uri string) downloader.Data {
 	}
 
 	return downloader.Data{
-		Site:      "YouTube youtube.com",
-		Title:     title,
-		Type:      "video",
-		Streams:   streams,
-		URL:       uri,
-		Thumbnail: youtube.Thumbnail.Thumbnails[0].URL,
+		Site:    "YouTube youtube.com",
+		Title:   title,
+		Type:    "video",
+		Streams: streams,
+		URL:     uri,
+		// Thumbnail: youtube.Thumbnail.Thumbnails[0].URL,
 	}
 }
 
