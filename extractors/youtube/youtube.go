@@ -4,7 +4,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"net/url"
+	"strconv"
 	"strings"
 
 	"github.com/hqlyz/annie/config"
@@ -17,7 +19,8 @@ type args struct {
 	Title  string `json:"title"`
 	Stream string `json:"adaptive_fmts"`
 	// not every page has `adaptive_fmts` field https://youtu.be/DNaOZovrSVo
-	Stream2 string `json:"url_encoded_fmt_stream_map"`
+	Stream2        string `json:"url_encoded_fmt_stream_map"`
+	PlayerResponse string `json:"player_response"`
 }
 
 type assets struct {
@@ -35,9 +38,17 @@ type thumbnailsInfo struct {
 }
 
 type youtubeData struct {
-	Args      args      `json:"args"`
-	Assets    assets    `json:"assets"`
-	Thumbnail thumbnail `json:"thumbnail"`
+	Args   args   `json:"args"`
+	Assets assets `json:"assets"`
+}
+
+type videoDetails struct {
+	Thumbnail     thumbnail `json:"thumbnail"`
+	LengthSeconds string    `json:"lengthSeconds"`
+}
+
+type youtubeThumbnail struct {
+	VideoDetails videoDetails `json:"videoDetails"`
 }
 
 const referer = "https://www.youtube.com"
@@ -148,10 +159,22 @@ func youtubeDownload(uri string) downloader.Data {
 		return downloader.EmptyData(uri, err)
 	}
 	ytplayer := utils.MatchOneOf(html, `;ytplayer\.config\s*=\s*({.+?});`)[1]
+	ioutil.WriteFile("ytplayer.html", []byte(ytplayer), 0666)
 	var youtube youtubeData
-	json.Unmarshal([]byte(ytplayer), &youtube)
+	err = json.Unmarshal([]byte(ytplayer), &youtube)
+	if err != nil {
+		return downloader.EmptyData(uri, err)
+	}
 	title := youtube.Args.Title
-	fmt.Println(youtube)
+	var ytThumbnail youtubeThumbnail
+	err = json.Unmarshal([]byte(youtube.Args.PlayerResponse), &ytThumbnail)
+	if err != nil {
+		return downloader.EmptyData(uri, err)
+	}
+	fmt.Println(ytThumbnail.VideoDetails.Thumbnail.Thumbnails[1].URL)
+	fmt.Println(ytThumbnail.VideoDetails.Thumbnail.Thumbnails[1].Width)
+	fmt.Println(ytThumbnail.VideoDetails.Thumbnail.Thumbnails[1].Height)
+	fmt.Println(ytThumbnail.VideoDetails.LengthSeconds)
 
 	streams, err := extractVideoURLS(youtube, uri)
 	if err != nil {
@@ -159,12 +182,15 @@ func youtubeDownload(uri string) downloader.Data {
 	}
 
 	return downloader.Data{
-		Site:    "YouTube youtube.com",
-		Title:   title,
-		Type:    "video",
-		Streams: streams,
-		URL:     uri,
-		// Thumbnail: youtube.Thumbnail.Thumbnails[0].URL,
+		Site:            "YouTube youtube.com",
+		Title:           title,
+		Type:            "video",
+		Streams:         streams,
+		URL:             uri,
+		Thumbnail:       ytThumbnail.VideoDetails.Thumbnail.Thumbnails[1].URL,
+		ThumbnailWidth:  ytThumbnail.VideoDetails.Thumbnail.Thumbnails[1].Width,
+		ThumbnailHeight: ytThumbnail.VideoDetails.Thumbnail.Thumbnails[1].Height,
+		Length:          ytThumbnail.VideoDetails.LengthSeconds,
 	}
 }
 
@@ -180,6 +206,7 @@ func extractVideoURLS(data youtubeData, referer string) (map[string]downloader.S
 	streams := map[string]downloader.Stream{}
 
 	for _, s := range youtubeStreams {
+		fmt.Println(s)
 		stream, err := url.ParseQuery(s)
 		if err != nil {
 			return nil, err
@@ -208,13 +235,21 @@ func extractVideoURLS(data youtubeData, referer string) (map[string]downloader.S
 		// 	return nil, err
 		// }
 		realURL := stream.Get("url")
-		size, err := request.Size(realURL, referer)
-		if err != nil {
-			// some stream of the video will return a 404 error,
-			// I don't know if it is a problem with the signature algorithm.
-			// https://github.com/hqlyz/annie/issues/322
-			continue
+		// size, err := request.Size(realURL, referer)
+		sizeStr := stream.Get("clen")
+		size := int64(0)
+		if sizeStr != "" {
+			size, err = strconv.ParseInt(sizeStr, 10, 64)
+			if err != nil {
+				size = int64(0)
+			}
 		}
+		// if err != nil {
+		// 	// some stream of the video will return a 404 error,
+		// 	// I don't know if it is a problem with the signature algorithm.
+		// 	// https://github.com/hqlyz/annie/issues/322
+		// 	continue
+		// }
 		urlData := downloader.URL{
 			URL:  realURL,
 			Size: size,

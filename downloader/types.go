@@ -48,13 +48,20 @@ type Data struct {
 	URL                 string `json:"url"`
 	OutputSortedStreams []Stream
 	Thumbnail           string `json:"thumbnail"`
+	ThumbnailWidth      int    `json:"twidth"`
+	ThumbnailHeight     int    `json:"theight"`
+	Length              string `json:"length"`
 }
 
 // OutputData for api
 type OutputData struct {
-	Title   string         `json:"title"`
-	URL     string         `json:"url"`
-	Streams []OutputStream `json:"streams"`
+	Title           string         `json:"title"`
+	URL             string         `json:"url"`
+	Streams         []OutputStream `json:"streams"`
+	Thumbnail       string         `json:"thumbnail"`
+	ThumbnailWidth  int            `json:"twidth"`
+	ThumbnailHeight int            `json:"theight"`
+	Length          string         `json:"length"`
 }
 
 // OutputStream for api
