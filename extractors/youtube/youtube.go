@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"net/url"
 	"strings"
 
@@ -25,9 +24,20 @@ type assets struct {
 	JS string `json:"js"`
 }
 
+type thumbnail struct {
+	Thumbnails []thumbnailsInfo `json:"thumbnails"`
+}
+
+type thumbnailsInfo struct {
+	URL    string `json:"url"`
+	Width  int    `json:"width"`
+	Height int    `json:"height"`
+}
+
 type youtubeData struct {
-	Args   args   `json:"args"`
-	Assets assets `json:"assets"`
+	Args      args      `json:"args"`
+	Assets    assets    `json:"assets"`
+	Thumbnail thumbnail `json:"thumbnail"`
 }
 
 const referer = "https://www.youtube.com"
@@ -133,7 +143,7 @@ func youtubeDownload(uri string) downloader.Data {
 		vid[1],
 	)
 	html, err := request.Get(videoURL, referer, nil)
-	ioutil.WriteFile("html.html", []byte(html), 0666)
+	// ioutil.WriteFile("html.html", []byte(html), 0666)
 	if err != nil {
 		return downloader.EmptyData(uri, err)
 	}
@@ -141,6 +151,7 @@ func youtubeDownload(uri string) downloader.Data {
 	var youtube youtubeData
 	json.Unmarshal([]byte(ytplayer), &youtube)
 	title := youtube.Args.Title
+	fmt.Printf("thumbnail: %s\n", youtube.Thumbnail.Thumbnails[0].URL)
 
 	streams, err := extractVideoURLS(youtube, uri)
 	if err != nil {
@@ -148,11 +159,12 @@ func youtubeDownload(uri string) downloader.Data {
 	}
 
 	return downloader.Data{
-		Site:    "YouTube youtube.com",
-		Title:   title,
-		Type:    "video",
-		Streams: streams,
-		URL:     uri,
+		Site:      "YouTube youtube.com",
+		Title:     title,
+		Type:      "video",
+		Streams:   streams,
+		URL:       uri,
+		Thumbnail: youtube.Thumbnail.Thumbnails[0].URL,
 	}
 }
 

@@ -47,6 +47,7 @@ type Data struct {
 	// URL is used to record the address of this download
 	URL                 string `json:"url"`
 	OutputSortedStreams []Stream
+	Thumbnail           string `json:"thumbnail"`
 }
 
 // OutputData for api
