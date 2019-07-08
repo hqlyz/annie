@@ -2,6 +2,7 @@ package youtube
 
 import (
 	"fmt"
+	"io/ioutil"
 	"net/url"
 	"regexp"
 	"strconv"
@@ -101,11 +102,12 @@ func getSigTokens(htmlPlayerFile string) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
-
+	fmt.Println("uresolve: " + u.ResolveReference(p).String())
 	body, err := request.Get(u.ResolveReference(p).String(), referer, nil)
 	if err != nil {
 		return nil, err
 	}
+	ioutil.WriteFile("body.html", []byte(body), 0666)
 
 	objResult := actionsObjRegexp.FindStringSubmatch(body)
 	funcResult := actionsFuncRegexp.FindStringSubmatch(body)

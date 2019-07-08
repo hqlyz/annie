@@ -159,6 +159,10 @@ func youtubeDownload(uri string) downloader.Data {
 	if err != nil {
 		return downloader.EmptyData(uri, err)
 	}
+	ytplayerArr := utils.MatchOneOf(html, `;ytplayer\.config\s*=\s*({.+?});`)
+	if len(ytplayerArr) == 0 {
+		return downloader.EmptyData(uri, errors.New("the video is not availabel"))
+	}
 	ytplayer := utils.MatchOneOf(html, `;ytplayer\.config\s*=\s*({.+?});`)[1]
 	ioutil.WriteFile("ytplayer.html", []byte(ytplayer), 0666)
 	var youtube youtubeData
