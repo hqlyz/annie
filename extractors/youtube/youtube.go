@@ -53,51 +53,51 @@ type youtubeThumbnail struct {
 
 const referer = "https://www.youtube.com"
 
-var tokensCache = make(map[string][]string)
+// var tokensCache = make(map[string][]string)
 
-func getSig(sig, js string) (string, error) {
-	sigURL := fmt.Sprintf("https://www.youtube.com%s", js)
-	tokens, ok := tokensCache[sigURL]
-	if !ok {
-		html, err := request.Get(sigURL, referer, nil)
-		if err != nil {
-			return "", err
-		}
-		tokens, err = getSigTokens(html)
-		if err != nil {
-			return "", err
-		}
-		tokensCache[sigURL] = tokens
-	}
-	return decipherTokens(tokens, sig), nil
-}
+// func getSig(sig, js string) (string, error) {
+// 	sigURL := fmt.Sprintf("https://www.youtube.com%s", js)
+// 	tokens, ok := tokensCache[sigURL]
+// 	if !ok {
+// 		html, err := request.Get(sigURL, referer, nil)
+// 		if err != nil {
+// 			return "", err
+// 		}
+// 		tokens, err = getSigTokens(html)
+// 		if err != nil {
+// 			return "", err
+// 		}
+// 		tokensCache[sigURL] = tokens
+// 	}
+// 	return decipherTokens(tokens, sig), nil
+// }
 
-func genSignedURL(streamURL string, stream url.Values, js string) (string, error) {
-	var (
-		realURL, sig string
-		err          error
-	)
-	// fmt.Println(streamURL)
-	if strings.Contains(streamURL, "signature=") {
-		// URL itself already has a signature parameter
-		realURL = streamURL
-	} else {
-		// URL has no signature parameter
-		sig = stream.Get("sig")
-		if sig == "" {
-			// Signature need decrypt
-			sig, err = getSig(stream.Get("s"), js)
-			if err != nil {
-				return "", err
-			}
-		}
-		realURL = fmt.Sprintf("%s&signature=%s", streamURL, sig)
-	}
-	if !strings.Contains(realURL, "ratebypass") {
-		realURL += "&ratebypass=yes"
-	}
-	return realURL, nil
-}
+// func genSignedURL(streamURL string, stream url.Values, js string) (string, error) {
+// 	var (
+// 		realURL, sig string
+// 		err          error
+// 	)
+// 	// fmt.Println(streamURL)
+// 	if strings.Contains(streamURL, "signature=") {
+// 		// URL itself already has a signature parameter
+// 		realURL = streamURL
+// 	} else {
+// 		// URL has no signature parameter
+// 		sig = stream.Get("sig")
+// 		if sig == "" {
+// 			// Signature need decrypt
+// 			sig, err = getSig(stream.Get("s"), js)
+// 			if err != nil {
+// 				return "", err
+// 			}
+// 		}
+// 		realURL = fmt.Sprintf("%s&signature=%s", streamURL, sig)
+// 	}
+// 	if !strings.Contains(realURL, "ratebypass") {
+// 		realURL += "&ratebypass=yes"
+// 	}
+// 	return realURL, nil
+// }
 
 // Extract is the main function for extracting data
 func Extract(uri string) ([]downloader.Data, error) {
@@ -172,10 +172,6 @@ func youtubeDownload(uri string) downloader.Data {
 	if err != nil {
 		return downloader.EmptyData(uri, err)
 	}
-	// fmt.Println(ytThumbnail.VideoDetails.Thumbnail.Thumbnails[1].URL)
-	// fmt.Println(ytThumbnail.VideoDetails.Thumbnail.Thumbnails[1].Width)
-	// fmt.Println(ytThumbnail.VideoDetails.Thumbnail.Thumbnails[1].Height)
-	// fmt.Println(ytThumbnail.VideoDetails.LengthSeconds)
 
 	streams, err := extractVideoURLS(youtube, uri)
 	if err != nil {
@@ -207,7 +203,7 @@ func extractVideoURLS(data youtubeData, referer string) (map[string]downloader.S
 	streams := map[string]downloader.Stream{}
 
 	for _, s := range youtubeStreams {
-		fmt.Println(s)
+		// fmt.Println(s)
 		stream, err := url.ParseQuery(s)
 		if err != nil {
 			return nil, err
@@ -239,6 +235,8 @@ func extractVideoURLS(data youtubeData, referer string) (map[string]downloader.S
 		if err != nil {
 			return nil, err
 		}
+		fmt.Println("realURL: " + realURL)
+		fmt.Println("url: " + stream.Get("url"))
 		// realURL := stream.Get("url")
 		// size, err := request.Size(realURL, referer)
 		sizeStr := stream.Get("clen")
