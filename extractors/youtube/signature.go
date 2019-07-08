@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/iawia002/annie/request"
+	"github.com/hqlyz/annie/request"
 )
 
 func getDownloadURL(stream url.Values, htmlPlayerFile string) (string, error) {
