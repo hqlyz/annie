@@ -155,7 +155,7 @@ func youtubeDownload(uri string) downloader.Data {
 		vid[1],
 	)
 	html, err := request.Get(videoURL, referer, nil)
-	// ioutil.WriteFile("html.html", []byte(html), 0666)
+	ioutil.WriteFile("html.html", []byte(html), 0666)
 	if err != nil {
 		return downloader.EmptyData(uri, err)
 	}
@@ -235,8 +235,8 @@ func extractVideoURLS(data youtubeData, referer string) (map[string]downloader.S
 		if err != nil {
 			return nil, err
 		}
-		fmt.Println("realURL: " + realURL)
-		fmt.Println("url: " + stream.Get("url"))
+		// fmt.Println("realURL: " + realURL)
+		// fmt.Println("url: " + stream.Get("url"))
 		// realURL := stream.Get("url")
 		// size, err := request.Size(realURL, referer)
 		sizeStr := stream.Get("clen")
