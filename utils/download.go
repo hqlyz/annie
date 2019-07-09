@@ -4,11 +4,11 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/hqlyz/annie/config"
+	"github.com/hqlyz/annie/myconfig"
 )
 
 // NeedDownloadList return the indices of playlist that need download
-func NeedDownloadList(length int) []int {
+func NeedDownloadList(length int, config myconfig.Config) []int {
 	if config.PlaylistItems != "" {
 		var items []int
 		var index int

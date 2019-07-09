@@ -4,7 +4,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/hqlyz/annie/config"
+	"github.com/hqlyz/annie/myconfig"
 )
 
 func TestMatchOneOf(t *testing.T) {

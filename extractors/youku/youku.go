@@ -14,8 +14,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/hqlyz/annie/config"
 	"github.com/hqlyz/annie/downloader"
+	"github.com/hqlyz/annie/myconfig"
 	"github.com/hqlyz/annie/request"
 	"github.com/hqlyz/annie/utils"
 )
@@ -78,7 +78,7 @@ func getAudioLang(lang string) string {
 
 // var ccodes = []string{"0510", "0502", "0507", "0508", "0512", "0513", "0514", "0503", "0590"}
 
-func youkuUps(vid string) (youkuData, error) {
+func youkuUps(vid string, config myconfig.Config) (youkuData, error) {
 	var (
 		url  string
 		utid string
@@ -89,7 +89,7 @@ func youkuUps(vid string) (youkuData, error) {
 	if strings.Contains(config.Cookie, "cna") {
 		utid = utils.MatchOneOf(config.Cookie, `cna=(.+?);`, `cna\s+(.+?)\s`, `cna\s+(.+?)$`)[1]
 	} else {
-		headers, err := request.Headers("http://log.mmstat.com/eg.js", youkuReferer)
+		headers, err := request.Headers("http://log.mmstat.com/eg.js", youkuReferer, config)
 		if err != nil {
 			return youkuData{}, err
 		}
@@ -109,7 +109,7 @@ func youkuUps(vid string) (youkuData, error) {
 		if config.YoukuPassword != "" {
 			url = fmt.Sprintf("%s&password=%s", url, config.YoukuPassword)
 		}
-		html, err = request.Get(url, youkuReferer, nil)
+		html, err = request.Get(url, youkuReferer, nil, config)
 		if err != nil {
 			return youkuData{}, err
 		}
@@ -199,11 +199,11 @@ func genData(youkuData data) map[string]downloader.Stream {
 }
 
 // Extract is the main function for extracting data
-func Extract(url string) ([]downloader.Data, error) {
+func Extract(url string, config myconfig.Config) ([]downloader.Data, error) {
 	vid := utils.MatchOneOf(
 		url, `id_(.+?)\.html`, `id_(.+)`,
 	)[1]
-	youkuData, err := youkuUps(vid)
+	youkuData, err := youkuUps(vid, config)
 	if err != nil {
 		return downloader.EmptyList, err
 	}

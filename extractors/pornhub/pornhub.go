@@ -1,6 +1,7 @@
 package pornhub
 
 import (
+	"github.com/hqlyz/annie/myconfig"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -17,9 +18,9 @@ type pornhubData struct {
 }
 
 // Extract is the main function for extracting data
-func Extract(url string) ([]downloader.Data, error) {
+func Extract(url string, config myconfig.Config) ([]downloader.Data, error) {
 	var err error
-	html, err := request.Get(url, url, nil)
+	html, err := request.Get(url, url, nil, config)
 	if err != nil {
 		return downloader.EmptyList, err
 	}
@@ -46,7 +47,7 @@ func Extract(url string) ([]downloader.Data, error) {
 		if realURL == "" {
 			continue
 		}
-		size, err := request.Size(realURL, url)
+		size, err := request.Size(realURL, url, config)
 		if err != nil {
 			return downloader.EmptyList, err
 		}

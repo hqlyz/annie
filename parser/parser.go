@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/hqlyz/annie/myconfig"
+
 	"github.com/PuerkitoBio/goquery"
 
 	"github.com/hqlyz/annie/downloader"
@@ -22,8 +24,7 @@ func GetDoc(html string) (*goquery.Document, error) {
 
 // GetImages find the img with a given class name
 func GetImages(
-	url, html, imgClass string, urlHandler func(string) string,
-) (string, []downloader.URL, error) {
+	url, html, imgClass string, urlHandler func(string) string, config myconfig.Config) (string, []downloader.URL, error) {
 	var err error
 	doc, err := GetDoc(html)
 	if err != nil {
@@ -39,11 +40,11 @@ func GetImages(
 				// Handle URL as needed
 				urlData.URL = urlHandler(urlData.URL)
 			}
-			urlData.Size, err = request.Size(urlData.URL, url)
+			urlData.Size, err = request.Size(urlData.URL, url, config)
 			if err != nil {
 				return
 			}
-			_, urlData.Ext, err = utils.GetNameAndExt(urlData.URL)
+			_, urlData.Ext, err = utils.GetNameAndExt(urlData.URL, config)
 			if err != nil {
 				return
 			}

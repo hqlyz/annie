@@ -9,8 +9,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/hqlyz/annie/config"
 	"github.com/hqlyz/annie/downloader"
+	"github.com/hqlyz/annie/myconfig"
 	"github.com/hqlyz/annie/request"
 	"github.com/hqlyz/annie/utils"
 )
@@ -100,22 +100,22 @@ const referer = "https://www.youtube.com"
 // }
 
 // Extract is the main function for extracting data
-func Extract(uri string) ([]downloader.Data, error) {
+func Extract(uri string, config myconfig.Config) ([]downloader.Data, error) {
 	var err error
 	if !config.Playlist {
-		return []downloader.Data{youtubeDownload(uri)}, nil
+		return []downloader.Data{youtubeDownload(uri, config)}, nil
 	}
 	listID := utils.MatchOneOf(uri, `(list|p)=([^/&]+)`)[2]
 	if listID == "" {
 		return downloader.EmptyList, errors.New("can't get list ID from URL")
 	}
-	html, err := request.Get("https://www.youtube.com/playlist?list="+listID, referer, nil)
+	html, err := request.Get("https://www.youtube.com/playlist?list="+listID, referer, nil, config)
 	if err != nil {
 		return downloader.EmptyList, err
 	}
 	// "videoId":"OQxX8zgyzuM","thumbnail"
 	videoIDs := utils.MatchAll(html, `"videoId":"([^,]+?)","thumbnail"`)
-	needDownloadItems := utils.NeedDownloadList(len(videoIDs))
+	needDownloadItems := utils.NeedDownloadList(len(videoIDs), config)
 	extractedData := make([]downloader.Data, len(needDownloadItems))
 	wgp := utils.NewWaitGroupPool(config.ThreadNumber)
 	dataIndex := 0
@@ -129,7 +129,7 @@ func Extract(uri string) ([]downloader.Data, error) {
 		wgp.Add()
 		go func(index int, u string, extractedData []downloader.Data) {
 			defer wgp.Done()
-			extractedData[index] = youtubeDownload(u)
+			extractedData[index] = youtubeDownload(u, config)
 		}(dataIndex, u, extractedData)
 		dataIndex++
 	}
@@ -138,7 +138,7 @@ func Extract(uri string) ([]downloader.Data, error) {
 }
 
 // youtubeDownload download function for single url
-func youtubeDownload(uri string) downloader.Data {
+func youtubeDownload(uri string, config myconfig.Config) downloader.Data {
 	var err error
 	vid := utils.MatchOneOf(
 		uri,
@@ -154,7 +154,7 @@ func youtubeDownload(uri string) downloader.Data {
 		"https://www.youtube.com/watch?v=%s&gl=US&hl=en&has_verified=1&bpctr=9999999999",
 		vid[1],
 	)
-	html, err := request.Get(videoURL, referer, nil)
+	html, err := request.Get(videoURL, referer, nil, config)
 	ioutil.WriteFile("html.html", []byte(html), 0666)
 	if err != nil {
 		return downloader.EmptyData(uri, err)
@@ -178,7 +178,7 @@ func youtubeDownload(uri string) downloader.Data {
 		return downloader.EmptyData(uri, err)
 	}
 
-	streams, err := extractVideoURLS(youtube, uri)
+	streams, err := extractVideoURLS(youtube, uri, config)
 	if err != nil {
 		return downloader.EmptyData(uri, err)
 	}
@@ -196,7 +196,7 @@ func youtubeDownload(uri string) downloader.Data {
 	}
 }
 
-func extractVideoURLS(data youtubeData, referer string) (map[string]downloader.Stream, error) {
+func extractVideoURLS(data youtubeData, referer string, config myconfig.Config) (map[string]downloader.Stream, error) {
 	var youtubeStreams []string
 	if config.YouTubeStream2 || data.Args.Stream == "" {
 		youtubeStreams = strings.Split(data.Args.Stream2, ",")
@@ -236,7 +236,7 @@ func extractVideoURLS(data youtubeData, referer string) (map[string]downloader.S
 		// if err != nil {
 		// 	return nil, err
 		// }
-		realURL, err := getDownloadURL(stream, data.Assets.JS)
+		realURL, err := getDownloadURL(stream, data.Assets.JS, config)
 		if err != nil {
 			return nil, err
 		}

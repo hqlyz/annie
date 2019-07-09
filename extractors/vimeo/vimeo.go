@@ -5,6 +5,8 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/hqlyz/annie/myconfig"
+
 	"github.com/hqlyz/annie/downloader"
 	"github.com/hqlyz/annie/request"
 	"github.com/hqlyz/annie/utils"
@@ -36,19 +38,19 @@ type vimeo struct {
 }
 
 // Extract is the main function for extracting data
-func Extract(url string) ([]downloader.Data, error) {
+func Extract(url string, config myconfig.Config) ([]downloader.Data, error) {
 	var (
 		html, vid string
 		err       error
 	)
 	if strings.Contains(url, "player.vimeo.com") {
-		html, err = request.Get(url, url, nil)
+		html, err = request.Get(url, url, nil, config)
 		if err != nil {
 			return downloader.EmptyList, err
 		}
 	} else {
 		vid = utils.MatchOneOf(url, `vimeo\.com/(\d+)`)[1]
-		html, err = request.Get("https://player.vimeo.com/video/"+vid, url, nil)
+		html, err = request.Get("https://player.vimeo.com/video/"+vid, url, nil, config)
 		if err != nil {
 			return downloader.EmptyList, err
 		}
@@ -60,7 +62,7 @@ func Extract(url string) ([]downloader.Data, error) {
 	var size int64
 	var urlData downloader.URL
 	for _, video := range vimeoData.Request.Files.Progressive {
-		size, err = request.Size(video.URL, url)
+		size, err = request.Size(video.URL, url, config)
 		if err != nil {
 			return downloader.EmptyList, err
 		}

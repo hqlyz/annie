@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"flag"
 	"fmt"
-	"github.com/patrickmn/go-cache"
 	"io/ioutil"
 	"net/url"
 	"os"
@@ -12,9 +11,10 @@ import (
 	"time"
 	"videostudioapi/mycache"
 
+	"github.com/patrickmn/go-cache"
+
 	"github.com/fatih/color"
 
-	"github.com/hqlyz/annie/config"
 	"github.com/hqlyz/annie/downloader"
 	"github.com/hqlyz/annie/extractors/bcy"
 	"github.com/hqlyz/annie/extractors/bilibili"
@@ -38,52 +38,53 @@ import (
 	"github.com/hqlyz/annie/extractors/yinyuetai"
 	"github.com/hqlyz/annie/extractors/youku"
 	"github.com/hqlyz/annie/extractors/youtube"
+	"github.com/hqlyz/annie/myconfig"
 	"github.com/hqlyz/annie/utils"
 )
 
 func init() {
-	flag.BoolVar(&config.Debug, "d", false, "Debug mode")
-	flag.BoolVar(&config.Version, "v", false, "Show version")
-	flag.BoolVar(&config.InfoOnly, "i", false, "Information only")
-	flag.StringVar(&config.Cookie, "c", "", "Cookie")
-	flag.BoolVar(&config.Playlist, "p", false, "Download playlist")
-	flag.StringVar(&config.Refer, "r", "", "Use specified Referrer")
-	flag.StringVar(&config.Proxy, "x", "", "HTTP proxy")
-	flag.StringVar(&config.Socks5Proxy, "s", "", "SOCKS5 proxy")
-	flag.StringVar(&config.Stream, "f", "", "Select specific stream to download")
-	flag.StringVar(&config.OutputPath, "o", "", "Specify the output path")
-	flag.StringVar(&config.OutputName, "O", "", "Specify the output file name")
-	flag.BoolVar(&config.ExtractedData, "j", false, "Print extracted data")
-	flag.IntVar(&config.ChunkSizeMB, "cs", 0, "HTTP chunk size for downloading (in MB)")
-	flag.BoolVar(&config.UseAria2RPC, "aria2", false, "Use Aria2 RPC to download")
-	flag.StringVar(&config.Aria2Token, "aria2token", "", "Aria2 RPC Token")
-	flag.StringVar(&config.Aria2Addr, "aria2addr", "localhost:6800", "Aria2 Address")
-	flag.StringVar(&config.Aria2Method, "aria2method", "http", "Aria2 Method")
+	flag.BoolVar(&myconfig.Debug, "d", false, "Debug mode")
+	flag.BoolVar(&myconfig.Version, "v", false, "Show version")
+	flag.BoolVar(&myconfig.InfoOnly, "i", false, "Information only")
+	flag.StringVar(&myconfig.Cookie, "c", "", "Cookie")
+	flag.BoolVar(&myconfig.Playlist, "p", false, "Download playlist")
+	flag.StringVar(&myconfig.Refer, "r", "", "Use specified Referrer")
+	flag.StringVar(&myconfig.Proxy, "x", "", "HTTP proxy")
+	flag.StringVar(&myconfig.Socks5Proxy, "s", "", "SOCKS5 proxy")
+	flag.StringVar(&myconfig.Stream, "f", "", "Select specific stream to download")
+	flag.StringVar(&myconfig.OutputPath, "o", "", "Specify the output path")
+	flag.StringVar(&myconfig.OutputName, "O", "", "Specify the output file name")
+	flag.BoolVar(&myconfig.ExtractedData, "j", false, "Print extracted data")
+	flag.IntVar(&myconfig.ChunkSizeMB, "cs", 0, "HTTP chunk size for downloading (in MB)")
+	flag.BoolVar(&myconfig.UseAria2RPC, "aria2", false, "Use Aria2 RPC to download")
+	flag.StringVar(&myconfig.Aria2Token, "aria2token", "", "Aria2 RPC Token")
+	flag.StringVar(&myconfig.Aria2Addr, "aria2addr", "localhost:6800", "Aria2 Address")
+	flag.StringVar(&myconfig.Aria2Method, "aria2method", "http", "Aria2 Method")
 	flag.IntVar(
-		&config.ThreadNumber, "n", 10, "The number of download thread (only works for multiple-parts video)",
+		&myconfig.ThreadNumber, "n", 10, "The number of download thread (only works for multiple-parts video)",
 	)
-	flag.StringVar(&config.File, "F", "", "URLs file path")
-	flag.IntVar(&config.PlaylistStart, "start", 1, "Playlist video to start at")
-	flag.IntVar(&config.PlaylistEnd, "end", 0, "Playlist video to end at")
+	flag.StringVar(&myconfig.File, "F", "", "URLs file path")
+	flag.IntVar(&myconfig.PlaylistStart, "start", 1, "Playlist video to start at")
+	flag.IntVar(&myconfig.PlaylistEnd, "end", 0, "Playlist video to end at")
 	flag.StringVar(
-		&config.PlaylistItems, "items", "",
+		&myconfig.PlaylistItems, "items", "",
 		"Playlist video items to download. Separated by commas like: 1,5,6",
 	)
-	flag.BoolVar(&config.Caption, "C", false, "Download captions")
+	flag.BoolVar(&myconfig.Caption, "C", false, "Download captions")
 	flag.IntVar(
-		&config.RetryTimes, "retry", 10, "How many times to retry when the download failed",
+		&myconfig.RetryTimes, "retry", 10, "How many times to retry when the download failed",
 	)
 	// youku
-	flag.StringVar(&config.YoukuCcode, "ccode", "0590", "Youku ccode")
+	flag.StringVar(&myconfig.YoukuCcode, "ccode", "0590", "Youku ccode")
 	flag.StringVar(
-		&config.YoukuCkey,
+		&myconfig.YoukuCkey,
 		"ckey",
 		"7B19C0AB12633B22E7FE81271162026020570708D6CC189E4924503C49D243A0DE6CD84A766832C2C99898FC5ED31F3709BB3CDD82C96492E721BDD381735026",
 		"Youku ckey",
 	)
-	flag.StringVar(&config.YoukuPassword, "password", "", "Youku password")
+	flag.StringVar(&myconfig.YoukuPassword, "password", "", "Youku password")
 	// youtube
-	flag.BoolVar(&config.YouTubeStream2, "ytb-stream2", false, "Use data in url_encoded_fmt_stream_map")
+	flag.BoolVar(&myconfig.YouTubeStream2, "ytb-stream2", false, "Use data in url_encoded_fmt_stream_map")
 }
 
 func printError(url string, err error) {
@@ -93,12 +94,13 @@ func printError(url string, err error) {
 	)
 }
 
-func download(videoURL string) bool {
+func download(videoURL string, config myconfig.Config) bool {
 	var (
 		domain string
 		err    error
 		data   []downloader.Data
 	)
+	// config := myconfig.New()
 	bilibiliShortLink := utils.MatchOneOf(videoURL, `^(av|ep)\d+`)
 	if bilibiliShortLink != nil {
 		bilibiliURL := map[string]string{
@@ -117,49 +119,49 @@ func download(videoURL string) bool {
 	}
 	switch domain {
 	case "douyin", "iesdouyin":
-		data, err = douyin.Extract(videoURL)
+		data, err = douyin.Extract(videoURL, config)
 	case "bilibili":
-		data, err = bilibili.Extract(videoURL)
+		data, err = bilibili.Extract(videoURL, config)
 	case "bcy":
-		data, err = bcy.Extract(videoURL)
+		data, err = bcy.Extract(videoURL, config)
 	case "pixivision":
-		data, err = pixivision.Extract(videoURL)
+		data, err = pixivision.Extract(videoURL, config)
 	case "youku":
-		data, err = youku.Extract(videoURL)
+		data, err = youku.Extract(videoURL, config)
 	case "youtube", "youtu": // youtu.be
-		data, err = youtube.Extract(videoURL)
+		data, err = youtube.Extract(videoURL, config)
 	case "iqiyi":
-		data, err = iqiyi.Extract(videoURL)
+		data, err = iqiyi.Extract(videoURL, config)
 	case "mgtv":
-		data, err = mgtv.Extract(videoURL)
+		data, err = mgtv.Extract(videoURL, config)
 	case "tumblr":
-		data, err = tumblr.Extract(videoURL)
+		data, err = tumblr.Extract(videoURL, config)
 	case "vimeo":
-		data, err = vimeo.Extract(videoURL)
+		data, err = vimeo.Extract(videoURL, config)
 	case "facebook":
-		data, err = facebook.Extract(videoURL)
+		data, err = facebook.Extract(videoURL, config)
 	case "douyu":
-		data, err = douyu.Extract(videoURL)
+		data, err = douyu.Extract(videoURL, config)
 	case "miaopai":
-		data, err = miaopai.Extract(videoURL)
+		data, err = miaopai.Extract(videoURL, config)
 	case "163":
-		data, err = netease.Extract(videoURL)
+		data, err = netease.Extract(videoURL, config)
 	case "weibo":
-		data, err = weibo.Extract(videoURL)
+		data, err = weibo.Extract(videoURL, config)
 	case "instagram":
-		data, err = instagram.Extract(videoURL)
+		data, err = instagram.Extract(videoURL, config)
 	case "twitter":
-		data, err = twitter.Extract(videoURL)
+		data, err = twitter.Extract(videoURL, config)
 	case "qq":
-		data, err = qq.Extract(videoURL)
+		data, err = qq.Extract(videoURL, config)
 	case "yinyuetai":
-		data, err = yinyuetai.Extract(videoURL)
+		data, err = yinyuetai.Extract(videoURL, config)
 	case "geekbang":
-		data, err = geekbang.Extract(videoURL)
+		data, err = geekbang.Extract(videoURL, config)
 	case "pornhub":
-		data, err = pornhub.Extract(videoURL)
+		data, err = pornhub.Extract(videoURL, config)
 	default:
-		data, err = universal.Extract(videoURL)
+		data, err = universal.Extract(videoURL, config)
 	}
 	if err != nil {
 		// if this error occurs, it means that an error occurred before actually starting to extract data
@@ -177,7 +179,7 @@ func download(videoURL string) bool {
 			isErr = true
 			continue
 		}
-		err = downloader.Download(item, videoURL, config.ChunkSizeMB, mycache.Cache, "lalala", 100)
+		err = downloader.Download(item, videoURL, config.ChunkSizeMB, mycache.Cache, "lalala", config)
 		if err != nil {
 			printError(item.URL, err)
 			isErr = true
@@ -187,14 +189,15 @@ func download(videoURL string) bool {
 }
 
 func main() {
+	config := myconfig.New()
 	flag.Parse()
 	args := flag.Args()
 	if config.Version {
-		utils.PrintVersion()
+		utils.PrintVersion(config)
 		return
 	}
 	if config.Debug {
-		utils.PrintVersion()
+		utils.PrintVersion(config)
 	}
 	if config.File != "" {
 		// read URL list from file
@@ -234,7 +237,7 @@ func main() {
 	}
 	var isErr bool
 	for _, videoURL := range args {
-		if err := download(strings.TrimSpace(videoURL)); err {
+		if err := download(strings.TrimSpace(videoURL), config); err {
 			isErr = true
 		}
 	}

@@ -3,7 +3,7 @@ package tumblr
 import (
 	"testing"
 
-	"github.com/hqlyz/annie/config"
+	"github.com/hqlyz/annie/myconfig"
 	"github.com/hqlyz/annie/test"
 )
 

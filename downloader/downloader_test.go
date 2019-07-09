@@ -4,8 +4,10 @@ import (
 	// "os"
 	"testing"
 
-	"github.com/hqlyz/annie/config"
+	"github.com/hqlyz/annie/myconfig"
 )
+
+var config = myconfig.New()
 
 func init() {
 	config.RetryTimes = 100

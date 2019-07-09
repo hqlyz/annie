@@ -13,7 +13,7 @@ import (
 
 	"github.com/fatih/color"
 
-	"github.com/hqlyz/annie/config"
+	"github.com/hqlyz/annie/myconfig"
 	"github.com/hqlyz/annie/request"
 )
 
@@ -93,7 +93,7 @@ func FileName(name string) string {
 }
 
 // FilePath gen valid file path
-func FilePath(name, ext string, escape bool) (string, error) {
+func FilePath(name, ext string, escape bool, config myconfig.Config) (string, error) {
 	var outputPath string
 	if config.OutputPath != "" {
 		if _, err := os.Stat(config.OutputPath); err != nil {
@@ -134,7 +134,7 @@ func ItemInSlice(item, list interface{}) bool {
 // GetNameAndExt return the name and ext of the URL
 // https://img9.bcyimg.com/drawer/15294/post/1799t/1f5a87801a0711e898b12b640777720f.jpg ->
 // 1f5a87801a0711e898b12b640777720f, jpg
-func GetNameAndExt(uri string) (string, string, error) {
+func GetNameAndExt(uri string, config myconfig.Config) (string, string, error) {
 	u, err := url.ParseRequestURI(uri)
 	if err != nil {
 		return "", "", err
@@ -147,7 +147,7 @@ func GetNameAndExt(uri string) (string, string, error) {
 	// Image url like this
 	// https://img9.bcyimg.com/drawer/15294/post/1799t/1f5a87801a0711e898b12b640777720f.jpg/w650
 	// has no suffix
-	contentType, err := request.ContentType(uri, uri)
+	contentType, err := request.ContentType(uri, uri, config)
 	if err != nil {
 		return "", "", err
 	}
@@ -162,8 +162,8 @@ func Md5(text string) string {
 }
 
 // M3u8URLs get all urls from m3u8 url
-func M3u8URLs(uri string) ([]string, error) {
-	html, err := request.Get(uri, "", nil)
+func M3u8URLs(uri string, config myconfig.Config) ([]string, error) {
+	html, err := request.Get(uri, "", nil, config)
 	if err != nil {
 		return nil, err
 	}
@@ -191,13 +191,13 @@ func M3u8URLs(uri string) ([]string, error) {
 }
 
 // PrintVersion print version information
-func PrintVersion() {
+func PrintVersion(config myconfig.Config) {
 	blue := color.New(color.FgBlue)
 	cyan := color.New(color.FgCyan)
 	fmt.Printf(
 		"\n%s: version %s, A fast, simple and clean video downloader.\n\n",
 		cyan.Sprintf("annie"),
-		blue.Sprintf(config.VERSION),
+		blue.Sprintf(myconfig.VERSION),
 	)
 }
 

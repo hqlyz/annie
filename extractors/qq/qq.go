@@ -7,6 +7,8 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/hqlyz/annie/myconfig"
+
 	"github.com/hqlyz/annie/downloader"
 	"github.com/hqlyz/annie/request"
 	"github.com/hqlyz/annie/utils"
@@ -48,7 +50,7 @@ type qqKeyInfo struct {
 
 const qqPlayerVersion string = "3.2.19.333"
 
-func genStreams(vid, cdn string, data qqVideoInfo) (map[string]downloader.Stream, error) {
+func genStreams(vid, cdn string, data qqVideoInfo, config myconfig.Config) (map[string]downloader.Stream, error) {
 	streams := map[string]downloader.Stream{}
 	var vkey string
 	// number of fragments
@@ -99,7 +101,7 @@ func genStreams(vid, cdn string, data qqVideoInfo) (map[string]downloader.Stream
 				fmt.Sprintf(
 					"http://vv.video.qq.com/getkey?otype=json&platform=11&appver=%s&filename=%s&format=%d&vid=%s",
 					qqPlayerVersion, filename, fi.ID, vid,
-				), cdn, nil,
+				), cdn, nil, config,
 			)
 			if err != nil {
 				return nil, err
@@ -112,7 +114,7 @@ func genStreams(vid, cdn string, data qqVideoInfo) (map[string]downloader.Stream
 				vkey = data.Vl.Vi[0].Fvkey
 			}
 			realURL := fmt.Sprintf("%s%s?vkey=%s", cdn, filename, vkey)
-			size, err := request.Size(realURL, cdn)
+			size, err := request.Size(realURL, cdn, config)
 			if err != nil {
 				return nil, err
 			}
@@ -134,10 +136,10 @@ func genStreams(vid, cdn string, data qqVideoInfo) (map[string]downloader.Stream
 }
 
 // Extract is the main function for extracting data
-func Extract(url string) ([]downloader.Data, error) {
+func Extract(url string, config myconfig.Config) ([]downloader.Data, error) {
 	vid := utils.MatchOneOf(url, `vid=(\w+)`, `/(\w+)\.html`)[1]
 	if len(vid) != 11 {
-		u, err := request.Get(url, url, nil)
+		u, err := request.Get(url, url, nil, config)
 		if err != nil {
 			return downloader.EmptyList, err
 		}
@@ -149,7 +151,7 @@ func Extract(url string) ([]downloader.Data, error) {
 		fmt.Sprintf(
 			"http://vv.video.qq.com/getinfo?otype=json&platform=11&defnpayver=1&appver=%s&defn=shd&vid=%s",
 			qqPlayerVersion, vid,
-		), url, nil,
+		), url, nil, config,
 	)
 	if err != nil {
 		return downloader.EmptyList, err
@@ -162,7 +164,7 @@ func Extract(url string) ([]downloader.Data, error) {
 		return downloader.EmptyList, errors.New(data.Msg)
 	}
 	cdn := data.Vl.Vi[0].Ul.UI[len(data.Vl.Vi[0].Ul.UI)-1].URL
-	streams, err := genStreams(vid, cdn, data)
+	streams, err := genStreams(vid, cdn, data, config)
 	if err != nil {
 		return downloader.EmptyList, err
 	}

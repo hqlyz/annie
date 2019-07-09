@@ -8,6 +8,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/hqlyz/annie/myconfig"
+
 	"github.com/hqlyz/annie/downloader"
 	"github.com/hqlyz/annie/parser"
 	"github.com/hqlyz/annie/request"
@@ -73,7 +75,7 @@ func getVF(params string) string {
 	return utils.Md5(params)
 }
 
-func getVPS(tvid, vid string) (iqiyi, error) {
+func getVPS(tvid, vid string, config myconfig.Config) (iqiyi, error) {
 	t := time.Now().Unix() * 1000
 	host := "http://cache.video.qiyi.com"
 	params := fmt.Sprintf(
@@ -82,7 +84,7 @@ func getVPS(tvid, vid string) (iqiyi, error) {
 	)
 	vf := getVF(params)
 	apiURL := fmt.Sprintf("%s%s&vf=%s", host, params, vf)
-	info, err := request.Get(apiURL, iqiyiReferer, nil)
+	info, err := request.Get(apiURL, iqiyiReferer, nil, config)
 	if err != nil {
 		return iqiyi{}, err
 	}
@@ -92,8 +94,8 @@ func getVPS(tvid, vid string) (iqiyi, error) {
 }
 
 // Extract is the main function for extracting data
-func Extract(url string) ([]downloader.Data, error) {
-	html, err := request.Get(url, iqiyiReferer, nil)
+func Extract(url string, config myconfig.Config) ([]downloader.Data, error) {
+	html, err := request.Get(url, iqiyiReferer, nil, config)
 	if err != nil {
 		return downloader.EmptyList, err
 	}
@@ -139,7 +141,7 @@ func Extract(url string) ([]downloader.Data, error) {
 	if title == "" {
 		title = doc.Find("title").Text()
 	}
-	videoDatas, err := getVPS(tvid[1], vid[1])
+	videoDatas, err := getVPS(tvid[1], vid[1], config)
 	if err != nil {
 		return downloader.EmptyList, err
 	}
@@ -151,13 +153,13 @@ func Extract(url string) ([]downloader.Data, error) {
 	for _, video := range videoDatas.Data.VP.Tkl[0].Vs {
 		urls := make([]downloader.URL, len(video.Fs))
 		for index, v := range video.Fs {
-			realURLData, err := request.Get(urlPrefix+v.L, iqiyiReferer, nil)
+			realURLData, err := request.Get(urlPrefix+v.L, iqiyiReferer, nil, config)
 			if err != nil {
 				return downloader.EmptyList, err
 			}
 			var realURL iqiyiURL
 			json.Unmarshal([]byte(realURLData), &realURL)
-			_, ext, err := utils.GetNameAndExt(realURL.L)
+			_, ext, err := utils.GetNameAndExt(realURL.L, config)
 			if err != nil {
 				return downloader.EmptyList, err
 			}

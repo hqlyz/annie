@@ -17,7 +17,7 @@ import (
 	"github.com/patrickmn/go-cache"
 
 	"github.com/cheggaaa/pb"
-	"github.com/hqlyz/annie/config"
+	"github.com/hqlyz/annie/myconfig"
 	"github.com/hqlyz/annie/request"
 	"github.com/hqlyz/annie/utils"
 )
@@ -34,16 +34,16 @@ func progressBar(size int64) *pb.ProgressBar {
 }
 
 // Caption download danmaku, subtitles, etc
-func Caption(url, refer, fileName, ext string) error {
+func Caption(url, refer, fileName, ext string, config myconfig.Config) error {
 	if !config.Caption || config.InfoOnly {
 		return nil
 	}
 	fmt.Println("\nDownloading captions...")
-	body, err := request.Get(url, refer, nil)
+	body, err := request.Get(url, refer, nil, config)
 	if err != nil {
 		return err
 	}
-	filePath, err := utils.FilePath(fileName, ext, true)
+	filePath, err := utils.FilePath(fileName, ext, true, config)
 	if err != nil {
 		return err
 	}
@@ -56,13 +56,13 @@ func Caption(url, refer, fileName, ext string) error {
 	return nil
 }
 
-func writeFile(url string, file *os.File, headers map[string]string, bar *pb.ProgressBar, cacheJL *cache.Cache, token string) (int64, error) {
+func writeFile(url string, file *os.File, headers map[string]string, bar *pb.ProgressBar, cacheJL *cache.Cache, token string, config myconfig.Config) (int64, error) {
 	var (
 		res *http.Response
 		err error
 	)
 	cacheJL.Set(token+"d", int64(0), time.Minute*10)
-	res, err = request.Request("GET", url, nil, headers)
+	res, err = request.Request("GET", url, nil, headers, config)
 	if err != nil {
 		return 0, err
 	}
@@ -100,7 +100,7 @@ func writeFile(url string, file *os.File, headers map[string]string, bar *pb.Pro
 			header[k] = v
 		}
 		header["Range"] = ranges
-		go fragmentDownload(url, header, nil, fileName, cacheJL, token)
+		go fragmentDownload(url, header, nil, fileName, cacheJL, token, config)
 	}
 	wg.Wait()
 	// num, found := cacheJL.Get(token)
@@ -133,12 +133,12 @@ func writeFile(url string, file *os.File, headers map[string]string, bar *pb.Pro
 	return length, nil
 }
 
-func fragmentDownload(destURL string, headers map[string]string, bar *pb.ProgressBar, fileName string, cacheJL *cache.Cache, token string) {
+func fragmentDownload(destURL string, headers map[string]string, bar *pb.ProgressBar, fileName string, cacheJL *cache.Cache, token string, config myconfig.Config) {
 	var (
 		res *http.Response
 		err error
 	)
-	res, err = request.Request("GET", destURL, nil, headers)
+	res, err = request.Request("GET", destURL, nil, headers, config)
 	if err != nil {
 		return
 	}
@@ -186,9 +186,9 @@ func fragmentDownload(destURL string, headers map[string]string, bar *pb.Progres
 // }
 
 // Save save url file
-func Save(urlData URL, refer, fileName string, bar *pb.ProgressBar, chunkSizeMB int, cacheJL *cache.Cache, token string) error {
+func Save(urlData URL, refer, fileName string, bar *pb.ProgressBar, chunkSizeMB int, cacheJL *cache.Cache, token string, config myconfig.Config) error {
 	var err error
-	filePath, err := utils.FilePath(fileName, urlData.Ext, false)
+	filePath, err := utils.FilePath(fileName, urlData.Ext, false, config)
 	if err != nil {
 		return err
 	}
@@ -248,7 +248,7 @@ func Save(urlData URL, refer, fileName string, bar *pb.ProgressBar, chunkSizeMB 
 			headers["Range"] = fmt.Sprintf("bytes=%d-%d", start, end)
 			temp := start
 			for i := 0; ; i++ {
-				written, err := writeFile(urlData.URL, file, headers, bar, cacheJL, token)
+				written, err := writeFile(urlData.URL, file, headers, bar, cacheJL, token, config)
 				if err == nil {
 					break
 				} else if i+1 >= config.RetryTimes {
@@ -263,7 +263,7 @@ func Save(urlData URL, refer, fileName string, bar *pb.ProgressBar, chunkSizeMB 
 	} else {
 		temp := tempFileSize
 		for i := 0; ; i++ {
-			written, err := writeFile(urlData.URL, file, headers, bar, cacheJL, token)
+			written, err := writeFile(urlData.URL, file, headers, bar, cacheJL, token, config)
 			if err == nil {
 				break
 			} else if i+1 >= config.RetryTimes {
@@ -288,7 +288,7 @@ func Save(urlData URL, refer, fileName string, bar *pb.ProgressBar, chunkSizeMB 
 }
 
 // Download download urls
-func Download(v Data, refer string, chunkSizeMB int, cacheJL *cache.Cache, token string) error {
+func Download(v Data, refer string, chunkSizeMB int, cacheJL *cache.Cache, token string, config myconfig.Config) error {
 	v.genSortedStreams()
 	if config.ExtractedData {
 		jsonData, _ := json.MarshalIndent(v, "", "    ")
@@ -314,7 +314,7 @@ func Download(v Data, refer string, chunkSizeMB int, cacheJL *cache.Cache, token
 		return fmt.Errorf("no stream named %s", stream)
 	}
 	title = title + " - " + splitVideoQuality(data.Quality)
-	v.printInfo(stream) // if InfoOnly, this func will print all streams info
+	v.printInfo(stream, config) // if InfoOnly, this func will print all streams info
 	if config.InfoOnly {
 		return nil
 	}
@@ -357,7 +357,7 @@ func Download(v Data, refer string, chunkSizeMB int, cacheJL *cache.Cache, token
 	}
 	var err error
 	// Skip the complete file that has been merged
-	mergedFilePath, err := utils.FilePath(title, "mp4", false)
+	mergedFilePath, err := utils.FilePath(title, "mp4", false, config)
 	if err != nil {
 		return err
 	}
@@ -384,7 +384,7 @@ func Download(v Data, refer string, chunkSizeMB int, cacheJL *cache.Cache, token
 	if len(data.URLs) == 1 {
 		// only one fragment
 		cacheJL.Set(token+"c", convertCacheValue, time.Minute*60)
-		err := Save(data.URLs[0], refer, title, bar, chunkSizeMB, cacheJL, token)
+		err := Save(data.URLs[0], refer, title, bar, chunkSizeMB, cacheJL, token, config)
 		if err != nil {
 			return err
 		}
@@ -397,7 +397,7 @@ func Download(v Data, refer string, chunkSizeMB int, cacheJL *cache.Cache, token
 	parts := make([]string, len(data.URLs))
 	for index, url := range data.URLs {
 		partFileName := fmt.Sprintf("%s[%d]", title, index)
-		partFilePath, err := utils.FilePath(partFileName, url.Ext, false)
+		partFilePath, err := utils.FilePath(partFileName, url.Ext, false, config)
 		if err != nil {
 			return err
 		}
@@ -406,7 +406,7 @@ func Download(v Data, refer string, chunkSizeMB int, cacheJL *cache.Cache, token
 		wgp.Add()
 		go func(url URL, refer, fileName string, bar *pb.ProgressBar) {
 			defer wgp.Done()
-			err := Save(url, refer, fileName, bar, chunkSizeMB, cacheJL, token)
+			err := Save(url, refer, fileName, bar, chunkSizeMB, cacheJL, token, config)
 			if err != nil {
 				errs = append(errs, err)
 			}

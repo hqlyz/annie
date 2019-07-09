@@ -9,6 +9,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/hqlyz/annie/myconfig"
+
 	"github.com/hqlyz/annie/downloader"
 	"github.com/hqlyz/annie/request"
 	"github.com/hqlyz/annie/utils"
@@ -53,15 +55,15 @@ type mgtvPm2Data struct {
 	} `json:"data"`
 }
 
-func mgtvM3u8(url string) ([]mgtvURLInfo, int64, error) {
+func mgtvM3u8(url string, config myconfig.Config) ([]mgtvURLInfo, int64, error) {
 	var data []mgtvURLInfo
 	var temp mgtvURLInfo
 	var size, totalSize int64
-	urls, err := utils.M3u8URLs(url)
+	urls, err := utils.M3u8URLs(url, config)
 	if err != nil {
 		return nil, 0, err
 	}
-	m3u8String, err := request.Get(url, url, nil)
+	m3u8String, err := request.Get(url, url, nil, config)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -95,8 +97,8 @@ func encodeTk2(str string) string {
 }
 
 // Extract is the main function for extracting data
-func Extract(url string) ([]downloader.Data, error) {
-	html, err := request.Get(url, url, nil)
+func Extract(url string, config myconfig.Config) ([]downloader.Data, error) {
+	html, err := request.Get(url, url, nil, config)
 	if err != nil {
 		return downloader.EmptyList, err
 	}
@@ -125,6 +127,7 @@ func Extract(url string) ([]downloader.Data, error) {
 		),
 		url,
 		headers,
+		config,
 	)
 	if err != nil {
 		return downloader.EmptyList, err
@@ -138,6 +141,7 @@ func Extract(url string) ([]downloader.Data, error) {
 		),
 		url,
 		headers,
+		config,
 	)
 	if err != nil {
 		return downloader.EmptyList, err
@@ -156,12 +160,12 @@ func Extract(url string) ([]downloader.Data, error) {
 		}
 		// real download address
 		addr = mgtvVideoAddr{}
-		addrInfo, err := request.Get(mgtvData.Data.StreamDomain[0]+stream.URL, url, headers)
+		addrInfo, err := request.Get(mgtvData.Data.StreamDomain[0]+stream.URL, url, headers, config)
 		if err != nil {
 			return downloader.EmptyList, err
 		}
 		json.Unmarshal([]byte(addrInfo), &addr)
-		m3u8URLs, totalSize, err := mgtvM3u8(addr.Info)
+		m3u8URLs, totalSize, err := mgtvM3u8(addr.Info, config)
 		if err != nil {
 			return downloader.EmptyList, err
 		}

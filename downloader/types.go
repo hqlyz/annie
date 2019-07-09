@@ -6,7 +6,7 @@ import (
 
 	"github.com/fatih/color"
 
-	"github.com/hqlyz/annie/config"
+	"github.com/hqlyz/annie/myconfig"
 )
 
 // URL data struct for single URL information
@@ -141,7 +141,7 @@ func (v *Data) SortStreams() {
 	}
 }
 
-func (v *Data) printInfo(stream string) {
+func (v *Data) printInfo(stream string, config myconfig.Config) {
 	cyan := color.New(color.FgCyan)
 	fmt.Println()
 	cyan.Printf(" Site:      ")

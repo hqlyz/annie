@@ -1,6 +1,7 @@
 package weibo
 
 import (
+	"github.com/hqlyz/annie/myconfig"
 	"fmt"
 	netURL "net/url"
 	"strings"
@@ -11,11 +12,11 @@ import (
 	"github.com/hqlyz/annie/utils"
 )
 
-func downloadWeiboTV(url string) ([]downloader.Data, error) {
+func downloadWeiboTV(url string, config myconfig.Config) ([]downloader.Data, error) {
 	headers := map[string]string{
 		"Cookie": "SUB=_2AkMsZ8xOf8NxqwJRmP4RzGLqbo5xyQDEieKaOz2VJRMxHRl-yj83qlEotRB6B-fiobWQ5vdEoYw7bCoCdf4KyP8O3Ujq",
 	}
-	html, err := request.Get(url, url, headers)
+	html, err := request.Get(url, url, headers, config)
 	if err != nil {
 		return downloader.EmptyList, err
 	}
@@ -43,7 +44,7 @@ func downloadWeiboTV(url string) ([]downloader.Data, error) {
 		if !strings.HasPrefix(u, "http") {
 			continue
 		}
-		size, err := request.Size(u, url)
+		size, err := request.Size(u, url, config)
 		if err != nil {
 			return downloader.EmptyList, err
 		}
@@ -71,14 +72,14 @@ func downloadWeiboTV(url string) ([]downloader.Data, error) {
 }
 
 // Extract is the main function for extracting data
-func Extract(url string) ([]downloader.Data, error) {
+func Extract(url string, config myconfig.Config) ([]downloader.Data, error) {
 	if !strings.Contains(url, "m.weibo.cn") {
 		if strings.Contains(url, "weibo.com/tv/v/") {
-			return downloadWeiboTV(url)
+			return downloadWeiboTV(url, config)
 		}
 		url = strings.Replace(url, "weibo.com", "m.weibo.cn", 1)
 	}
-	html, err := request.Get(url, url, nil)
+	html, err := request.Get(url, url, nil, config)
 	if err != nil {
 		return downloader.EmptyList, err
 	}
@@ -88,7 +89,7 @@ func Extract(url string) ([]downloader.Data, error) {
 	realURL := utils.MatchOneOf(
 		html, `"stream_url_hd": "(.+?)"`, `"stream_url": "(.+?)"`,
 	)[1]
-	size, err := request.Size(realURL, url)
+	size, err := request.Size(realURL, url, config)
 	if err != nil {
 		return downloader.EmptyList, err
 	}

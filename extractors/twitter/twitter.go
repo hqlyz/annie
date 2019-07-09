@@ -6,6 +6,8 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/hqlyz/annie/myconfig"
+
 	"github.com/hqlyz/annie/downloader"
 	"github.com/hqlyz/annie/request"
 	"github.com/hqlyz/annie/utils"
@@ -20,8 +22,8 @@ type twitter struct {
 }
 
 // Extract is the main function for extracting data
-func Extract(uri string) ([]downloader.Data, error) {
-	html, err := request.Get(uri, uri, nil)
+func Extract(uri string, config myconfig.Config) ([]downloader.Data, error) {
+	html, err := request.Get(uri, uri, nil, config)
 	if err != nil {
 		return downloader.EmptyList, err
 	}
@@ -33,7 +35,7 @@ func Extract(uri string) ([]downloader.Data, error) {
 	headers := map[string]string{
 		"Authorization": "Bearer AAAAAAAAAAAAAAAAAAAAAIK1zgAAAAAA2tUWuhGZ2JceoId5GwYWU5GspY4%3DUq7gzFoCZs1QfwGoVdvSac3IniczZEYXIcDyumCauIXpcAPorE",
 	}
-	jsonString, err := request.Get(api, uri, headers)
+	jsonString, err := request.Get(api, uri, headers, config)
 	if err != nil {
 		return downloader.EmptyList, err
 	}
@@ -41,14 +43,14 @@ func Extract(uri string) ([]downloader.Data, error) {
 	json.Unmarshal([]byte(jsonString), &twitterData)
 	twitterData.TweetID = tweetID
 	twitterData.Username = username
-	extractedData, err := download(twitterData, uri)
+	extractedData, err := download(twitterData, uri, config)
 	if err != nil {
 		return downloader.EmptyList, err
 	}
 	return extractedData, nil
 }
 
-func download(data twitter, uri string) ([]downloader.Data, error) {
+func download(data twitter, uri string, config myconfig.Config) ([]downloader.Data, error) {
 	var (
 		err  error
 		size int64
@@ -57,19 +59,19 @@ func download(data twitter, uri string) ([]downloader.Data, error) {
 	switch {
 	// if video file is m3u8 and ts
 	case strings.Contains(data.Track.URL, ".m3u8"):
-		m3u8urls, err := utils.M3u8URLs(data.Track.URL)
+		m3u8urls, err := utils.M3u8URLs(data.Track.URL, config)
 		if err != nil {
 			return downloader.EmptyList, err
 		}
 		for index, m3u8 := range m3u8urls {
 			var totalSize int64
 			var urls []downloader.URL
-			ts, err := utils.M3u8URLs(m3u8)
+			ts, err := utils.M3u8URLs(m3u8, config)
 			if err != nil {
 				return downloader.EmptyList, err
 			}
 			for _, i := range ts {
-				size, err := request.Size(i, uri)
+				size, err := request.Size(i, uri, config)
 				if err != nil {
 					return downloader.EmptyList, err
 				}
@@ -92,7 +94,7 @@ func download(data twitter, uri string) ([]downloader.Data, error) {
 
 	// if video file is mp4
 	case strings.Contains(data.Track.URL, ".mp4"):
-		size, err = request.Size(data.Track.URL, uri)
+		size, err = request.Size(data.Track.URL, uri, config)
 		if err != nil {
 			return downloader.EmptyList, err
 		}

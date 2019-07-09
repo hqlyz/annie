@@ -3,15 +3,17 @@ package facebook
 import (
 	"fmt"
 
+	"github.com/hqlyz/annie/myconfig"
+
 	"github.com/hqlyz/annie/downloader"
 	"github.com/hqlyz/annie/request"
 	"github.com/hqlyz/annie/utils"
 )
 
 // Extract is the main function for extracting data
-func Extract(url string) ([]downloader.Data, error) {
+func Extract(url string, config myconfig.Config) ([]downloader.Data, error) {
 	var err error
-	html, err := request.Get(url, url, nil)
+	html, err := request.Get(url, url, nil, config)
 	if err != nil {
 		return downloader.EmptyList, err
 	}
@@ -22,7 +24,7 @@ func Extract(url string) ([]downloader.Data, error) {
 		u := utils.MatchOneOf(
 			html, fmt.Sprintf(`%s_src:"(.+?)"`, quality),
 		)[1]
-		size, err := request.Size(u, url)
+		size, err := request.Size(u, url, config)
 		if err != nil {
 			return downloader.EmptyList, err
 		}

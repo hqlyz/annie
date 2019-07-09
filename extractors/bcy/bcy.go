@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"strings"
 
+	"github.com/hqlyz/annie/myconfig"
+
 	"github.com/hqlyz/annie/downloader"
 	"github.com/hqlyz/annie/parser"
 	"github.com/hqlyz/annie/request"
@@ -21,9 +23,9 @@ type bcyData struct {
 }
 
 // Extract is the main function for extracting data
-func Extract(url string) ([]downloader.Data, error) {
+func Extract(url string, config myconfig.Config) ([]downloader.Data, error) {
 	var err error
-	html, err := request.Get(url, url, nil)
+	html, err := request.Get(url, url, nil, config)
 	if err != nil {
 		return downloader.EmptyList, err
 	}
@@ -43,12 +45,12 @@ func Extract(url string) ([]downloader.Data, error) {
 	urls := make([]downloader.URL, 0, len(data.Detail.PostData.Multi))
 	var totalSize int64
 	for _, img := range data.Detail.PostData.Multi {
-		size, err := request.Size(img.OriginalPath, url)
+		size, err := request.Size(img.OriginalPath, url, config)
 		if err != nil {
 			return downloader.EmptyList, err
 		}
 		totalSize += size
-		_, ext, err := utils.GetNameAndExt(img.OriginalPath)
+		_, ext, err := utils.GetNameAndExt(img.OriginalPath, config)
 		if err != nil {
 			return downloader.EmptyList, err
 		}

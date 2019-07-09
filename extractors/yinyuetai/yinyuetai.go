@@ -5,6 +5,8 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/hqlyz/annie/myconfig"
+
 	"github.com/hqlyz/annie/downloader"
 	"github.com/hqlyz/annie/request"
 	"github.com/hqlyz/annie/utils"
@@ -21,7 +23,7 @@ func genAPI(action string, param string) string {
 }
 
 // Extract is the main function for extracting data
-func Extract(url string) ([]downloader.Data, error) {
+func Extract(url string, config myconfig.Config) ([]downloader.Data, error) {
 	vid := utils.MatchOneOf(
 		url,
 		`https?://v.yinyuetai.com/video/(\d+)(?:\?vid=\d+)?`,
@@ -33,9 +35,9 @@ func Extract(url string) ([]downloader.Data, error) {
 	}
 	params := fmt.Sprintf("videoId=%s", vid[1])
 	// generate api url
-	apiUrl := genAPI(actionGetMvInfo, params)
+	apiURL := genAPI(actionGetMvInfo, params)
 	var err error
-	html, err := request.Get(apiUrl, url, nil)
+	html, err := request.Get(apiURL, url, nil, config)
 	if err != nil {
 		return downloader.EmptyList, err
 	}

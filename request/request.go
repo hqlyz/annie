@@ -19,13 +19,12 @@ import (
 	"github.com/kr/pretty"
 	"golang.org/x/net/proxy"
 
-	"github.com/hqlyz/annie/config"
+	"github.com/hqlyz/annie/myconfig"
 )
 
 // Request base request
 func Request(
-	method, url string, body io.Reader, headers map[string]string,
-) (*http.Response, error) {
+	method, url string, body io.Reader, headers map[string]string, config myconfig.Config) (*http.Response, error) {
 	transport := &http.Transport{
 		DisableCompression:  true,
 		TLSHandshakeTimeout: 10 * time.Second,
@@ -60,7 +59,7 @@ func Request(
 	if err != nil {
 		return nil, err
 	}
-	for k, v := range config.FakeHeaders {
+	for k, v := range myconfig.FakeHeaders {
 		req.Header.Set(k, v)
 	}
 	for k, v := range headers {
@@ -127,14 +126,14 @@ func Request(
 }
 
 // Get get request
-func Get(url, refer string, headers map[string]string) (string, error) {
+func Get(url, refer string, headers map[string]string, config myconfig.Config) (string, error) {
 	if headers == nil {
 		headers = map[string]string{}
 	}
 	if refer != "" {
 		headers["Referer"] = refer
 	}
-	res, err := Request("GET", url, nil, headers)
+	res, err := Request("GET", url, nil, headers, config)
 	if err != nil {
 		return "", err
 	}
@@ -157,11 +156,11 @@ func Get(url, refer string, headers map[string]string) (string, error) {
 }
 
 // Headers return the HTTP Headers of the url
-func Headers(url, refer string) (http.Header, error) {
+func Headers(url, refer string, config myconfig.Config) (http.Header, error) {
 	headers := map[string]string{
 		"Referer": refer,
 	}
-	res, err := Request("GET", url, nil, headers)
+	res, err := Request("GET", url, nil, headers, config)
 	if err != nil {
 		return nil, err
 	}
@@ -169,8 +168,8 @@ func Headers(url, refer string) (http.Header, error) {
 }
 
 // Size get size of the url
-func Size(url, refer string) (int64, error) {
-	h, err := Headers(url, refer)
+func Size(url, refer string, config myconfig.Config) (int64, error) {
+	h, err := Headers(url, refer, config)
 	if err != nil {
 		return 0, err
 	}
@@ -183,8 +182,8 @@ func Size(url, refer string) (int64, error) {
 }
 
 // ContentType get Content-Type of the url
-func ContentType(url, refer string) (string, error) {
-	h, err := Headers(url, refer)
+func ContentType(url, refer string, config myconfig.Config) (string, error) {
+	h, err := Headers(url, refer, config)
 	if err != nil {
 		return "", err
 	}

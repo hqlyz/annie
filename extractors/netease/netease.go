@@ -1,6 +1,7 @@
 package netease
 
 import (
+	"github.com/hqlyz/annie/myconfig"
 	"errors"
 	netURL "net/url"
 	"strings"
@@ -11,14 +12,14 @@ import (
 )
 
 // Extract is the main function for extracting data
-func Extract(url string) ([]downloader.Data, error) {
+func Extract(url string, config myconfig.Config) ([]downloader.Data, error) {
 	url = strings.Replace(url, "/#/", "/", 1)
 	vid := utils.MatchOneOf(url, `/(mv|video)\?id=(\w+)`)
 	if vid == nil {
 		return downloader.EmptyList, errors.New("invalid url for netease music")
 	}
 	var err error
-	html, err := request.Get(url, url, nil)
+	html, err := request.Get(url, url, nil, config)
 	if err != nil {
 		return downloader.EmptyList, err
 	}
@@ -28,7 +29,7 @@ func Extract(url string) ([]downloader.Data, error) {
 	title := utils.MatchOneOf(html, `<meta property="og:title" content="(.+?)" />`)[1]
 	realURL := utils.MatchOneOf(html, `<meta property="og:video" content="(.+?)" />`)[1]
 	realURL, _ = netURL.QueryUnescape(realURL)
-	size, err := request.Size(realURL, url)
+	size, err := request.Size(realURL, url, config)
 	if err != nil {
 		return downloader.EmptyList, err
 	}

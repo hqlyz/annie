@@ -6,6 +6,8 @@ import (
 	"io/ioutil"
 	"strings"
 
+	"github.com/hqlyz/annie/myconfig"
+
 	"github.com/hqlyz/annie/downloader"
 	"github.com/hqlyz/annie/request"
 	"github.com/hqlyz/annie/utils"
@@ -31,14 +33,14 @@ type geekURLInfo struct {
 	Size int64
 }
 
-func geekM3u8(url string) ([]geekURLInfo, error) {
+func geekM3u8(url string, config myconfig.Config) ([]geekURLInfo, error) {
 	var (
 		data []geekURLInfo
 		temp geekURLInfo
 		size int64
 		err  error
 	)
-	urls, err := utils.M3u8URLs(url)
+	urls, err := utils.M3u8URLs(url, config)
 	if err != nil {
 		return nil, err
 	}
@@ -53,7 +55,7 @@ func geekM3u8(url string) ([]geekURLInfo, error) {
 }
 
 // Extract is the main function for extracting data
-func Extract(url string) ([]downloader.Data, error) {
+func Extract(url string, config myconfig.Config) ([]downloader.Data, error) {
 	var err error
 	matches := utils.MatchOneOf(url, `https?://time.geekbang.org/course/detail/(\d+)-(\d+)`)
 	if matches == nil {
@@ -62,7 +64,7 @@ func Extract(url string) ([]downloader.Data, error) {
 
 	heanders := map[string]string{"Origin": "https://time.geekbang.org", "Content-Type": "application/json", "Referer": url}
 	params := strings.NewReader("{\"id\":" + string(matches[2]+"}"))
-	res, err := request.Request("POST", "https://time.geekbang.org/serv/v1/article", params, heanders)
+	res, err := request.Request("POST", "https://time.geekbang.org/serv/v1/article", params, heanders, config)
 	if err != nil {
 		return downloader.EmptyList, err
 	}
@@ -85,7 +87,7 @@ func Extract(url string) ([]downloader.Data, error) {
 	streams := make(map[string]downloader.Stream, len(data.Data.VideoMediaMap))
 
 	for key, media := range data.Data.VideoMediaMap {
-		m3u8URLs, err := geekM3u8(media.URL)
+		m3u8URLs, err := geekM3u8(media.URL, config)
 
 		if err != nil {
 			return downloader.EmptyList, err

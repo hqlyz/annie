@@ -8,13 +8,14 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/hqlyz/annie/myconfig"
 	"github.com/hqlyz/annie/request"
 )
 
-func getDownloadURL(stream url.Values, htmlPlayerFile string) (string, error) {
+func getDownloadURL(stream url.Values, htmlPlayerFile string, config myconfig.Config) (string, error) {
 	var signature string
 	if s := stream.Get("s"); len(s) > 0 {
-		tokens, err := getSigTokens(htmlPlayerFile)
+		tokens, err := getSigTokens(htmlPlayerFile, config)
 		if err != nil {
 			return "", err
 		}
@@ -96,14 +97,14 @@ var sliceRegexp = regexp.MustCompile(fmt.Sprintf("(?m)(?:^|,)(%s)%s", jsvarStr, 
 var spliceRegexp = regexp.MustCompile(fmt.Sprintf("(?m)(?:^|,)(%s)%s", jsvarStr, spliceStr))
 var swapRegexp = regexp.MustCompile(fmt.Sprintf("(?m)(?:^|,)(%s)%s", jsvarStr, swapStr))
 
-func getSigTokens(htmlPlayerFile string) ([]string, error) {
+func getSigTokens(htmlPlayerFile string, config myconfig.Config) ([]string, error) {
 	u, _ := url.Parse("https://www.youtube.com/watch")
 	p, err := url.Parse(htmlPlayerFile)
 	if err != nil {
 		return nil, err
 	}
 	fmt.Println("uresolve: " + u.ResolveReference(p).String())
-	body, err := request.Get(u.ResolveReference(p).String(), referer, nil)
+	body, err := request.Get(u.ResolveReference(p).String(), referer, nil, config)
 	if err != nil {
 		return nil, err
 	}

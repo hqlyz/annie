@@ -3,6 +3,8 @@ package instagram
 import (
 	"encoding/json"
 
+	"github.com/hqlyz/annie/myconfig"
+
 	"github.com/hqlyz/annie/downloader"
 	"github.com/hqlyz/annie/parser"
 	"github.com/hqlyz/annie/request"
@@ -30,8 +32,8 @@ type instagram struct {
 }
 
 // Extract is the main function for extracting data
-func Extract(url string) ([]downloader.Data, error) {
-	html, err := request.Get(url, url, nil)
+func Extract(url string, config myconfig.Config) ([]downloader.Data, error) {
+	html, err := request.Get(url, url, nil, config)
 	if err != nil {
 		return downloader.EmptyList, err
 	}
@@ -54,7 +56,7 @@ func Extract(url string) ([]downloader.Data, error) {
 		// Data
 		dataType = "video"
 		realURL = data.EntryData.PostPage[0].Graphql.ShortcodeMedia.VideoURL
-		size, err = request.Size(realURL, url)
+		size, err = request.Size(realURL, url, config)
 		if err != nil {
 			return downloader.EmptyList, err
 		}
@@ -74,7 +76,7 @@ func Extract(url string) ([]downloader.Data, error) {
 		if data.EntryData.PostPage[0].Graphql.ShortcodeMedia.EdgeSidecar.Edges == nil {
 			// Single
 			realURL = data.EntryData.PostPage[0].Graphql.ShortcodeMedia.DisplayURL
-			size, err = request.Size(realURL, url)
+			size, err = request.Size(realURL, url, config)
 			if err != nil {
 				return downloader.EmptyList, err
 			}
@@ -94,7 +96,7 @@ func Extract(url string) ([]downloader.Data, error) {
 			var urls []downloader.URL
 			for _, u := range data.EntryData.PostPage[0].Graphql.ShortcodeMedia.EdgeSidecar.Edges {
 				realURL = u.Node.DisplayURL
-				size, err = request.Size(realURL, url)
+				size, err = request.Size(realURL, url, config)
 				if err != nil {
 					return downloader.EmptyList, err
 				}

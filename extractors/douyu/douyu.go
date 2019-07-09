@@ -1,6 +1,7 @@
 package douyu
 
 import (
+	"github.com/hqlyz/annie/myconfig"
 	"encoding/json"
 	"errors"
 
@@ -21,19 +22,19 @@ type douyuURLInfo struct {
 	Size int64
 }
 
-func douyuM3u8(url string) ([]douyuURLInfo, int64, error) {
+func douyuM3u8(url string, config myconfig.Config) ([]douyuURLInfo, int64, error) {
 	var (
 		data            []douyuURLInfo
 		temp            douyuURLInfo
 		size, totalSize int64
 		err             error
 	)
-	urls, err := utils.M3u8URLs(url)
+	urls, err := utils.M3u8URLs(url, config)
 	if err != nil {
 		return nil, 0, err
 	}
 	for _, u := range urls {
-		size, err = request.Size(u, url)
+		size, err = request.Size(u, url, config)
 		if err != nil {
 			return nil, 0, err
 		}
@@ -48,28 +49,28 @@ func douyuM3u8(url string) ([]douyuURLInfo, int64, error) {
 }
 
 // Extract is the main function for extracting data
-func Extract(url string) ([]downloader.Data, error) {
+func Extract(url string, config myconfig.Config) ([]downloader.Data, error) {
 	var err error
 	liveVid := utils.MatchOneOf(url, `https?://www.douyu.com/(\S+)`)
 	if liveVid != nil {
 		return downloader.EmptyList, errors.New("暂不支持斗鱼直播")
 	}
 
-	html, err := request.Get(url, url, nil)
+	html, err := request.Get(url, url, nil, config)
 	if err != nil {
 		return downloader.EmptyList, err
 	}
 	title := utils.MatchOneOf(html, `<title>(.*?)</title>`)[1]
 
 	vid := utils.MatchOneOf(url, `https?://v.douyu.com/show/(\S+)`)[1]
-	dataString, err := request.Get("http://vmobile.douyu.com/video/getInfo?vid="+vid, url, nil)
+	dataString, err := request.Get("http://vmobile.douyu.com/video/getInfo?vid="+vid, url, nil, config)
 	if err != nil {
 		return downloader.EmptyList, err
 	}
 	var dataDict douyuData
 	json.Unmarshal([]byte(dataString), &dataDict)
 
-	m3u8URLs, totalSize, err := douyuM3u8(dataDict.Data.VideoURL)
+	m3u8URLs, totalSize, err := douyuM3u8(dataDict.Data.VideoURL, config)
 	if err != nil {
 		return downloader.EmptyList, err
 	}

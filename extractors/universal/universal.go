@@ -3,21 +3,23 @@ package universal
 import (
 	"fmt"
 
+	"github.com/hqlyz/annie/myconfig"
+
 	"github.com/hqlyz/annie/downloader"
 	"github.com/hqlyz/annie/request"
 	"github.com/hqlyz/annie/utils"
 )
 
 // Extract is the main function for extracting data
-func Extract(url string) ([]downloader.Data, error) {
+func Extract(url string, config myconfig.Config) ([]downloader.Data, error) {
 	fmt.Println()
 	fmt.Println("annie doesn't support this URL right now, but it will try to download it directly")
 
-	filename, ext, err := utils.GetNameAndExt(url)
+	filename, ext, err := utils.GetNameAndExt(url, config)
 	if err != nil {
 		return downloader.EmptyList, err
 	}
-	size, err := request.Size(url, url)
+	size, err := request.Size(url, url, config)
 	if err != nil {
 		return downloader.EmptyList, err
 	}
@@ -32,7 +34,7 @@ func Extract(url string) ([]downloader.Data, error) {
 			Size: size,
 		},
 	}
-	contentType, err := request.ContentType(url, url)
+	contentType, err := request.ContentType(url, url, config)
 	if err != nil {
 		return downloader.EmptyList, err
 	}
