@@ -1,10 +1,11 @@
 package pornhub
 
 import (
-	"github.com/hqlyz/annie/myconfig"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"strconv"
+
+	"github.com/hqlyz/annie/myconfig"
 
 	"github.com/hqlyz/annie/downloader"
 	"github.com/hqlyz/annie/request"
@@ -12,9 +13,9 @@ import (
 )
 
 type pornhubData struct {
-	Format   string `json:"format"`
-	Quality  string `json:"quality"`
-	VideoURL string `json:"videoUrl"`
+	Format   string      `json:"format"`
+	Quality  interface{} `json:"quality"`
+	VideoURL string      `json:"videoUrl"`
 }
 
 // Extract is the main function for extracting data
@@ -33,7 +34,7 @@ func Extract(url string, config myconfig.Config) ([]downloader.Data, error) {
 	}
 
 	realURLs := utils.MatchOneOf(html, `"mediaDefinitions":(.+?),"isVertical"`)
-	ioutil.WriteFile("ph.txt", []byte(realURLs[1]), 0666)
+	// ioutil.WriteFile("ph.txt", []byte(realURLs[1]), 0666)
 
 	var pornhubs []pornhubData
 	err = json.Unmarshal([]byte(realURLs[1]), &pornhubs)
@@ -56,12 +57,20 @@ func Extract(url string, config myconfig.Config) ([]downloader.Data, error) {
 			Size: size,
 			Ext:  "mp4",
 		}
-		streams[data.Quality] = downloader.Stream{
+		var quality string
+		switch data.Quality.(type) {
+		case string:
+			quality = data.Quality.(string)
+		case []int:
+			quality = strconv.Itoa(data.Quality.([]int)[0])
+		}
+		streams[quality] = downloader.Stream{
 			URLs:    []downloader.URL{urlData},
 			Size:    size,
 			Quality: fmt.Sprintf("%sP", data.Quality),
 		}
 	}
+	// fmt.Println(streams)
 
 	return []downloader.Data{
 		{
@@ -70,6 +79,7 @@ func Extract(url string, config myconfig.Config) ([]downloader.Data, error) {
 			Type:    "video",
 			Streams: streams,
 			URL:     url,
+			Length:  "0",
 		},
 	}, nil
 }
