@@ -9,7 +9,6 @@ import (
 	"os"
 	"strings"
 	"time"
-	"videostudioapi/mycache"
 
 	"github.com/patrickmn/go-cache"
 
@@ -41,6 +40,8 @@ import (
 	"github.com/hqlyz/annie/myconfig"
 	"github.com/hqlyz/annie/utils"
 )
+
+var cache1 *cache.Cache
 
 func init() {
 	flag.BoolVar(&myconfig.Debug, "d", false, "Debug mode")
@@ -85,6 +86,7 @@ func init() {
 	flag.StringVar(&myconfig.YoukuPassword, "password", "", "Youku password")
 	// youtube
 	flag.BoolVar(&myconfig.YouTubeStream2, "ytb-stream2", false, "Use data in url_encoded_fmt_stream_map")
+	cache1 = cache.New(time.Hour*2, time.Minute*5)
 }
 
 func printError(url string, err error) {
@@ -100,6 +102,7 @@ func download(videoURL string, config myconfig.Config) bool {
 		err    error
 		data   []downloader.Data
 	)
+	// mycache.Cache = cache.New(time.Hour*2, time.Minute*5)
 	// config := myconfig.New()
 	bilibiliShortLink := utils.MatchOneOf(videoURL, `^(av|ep)\d+`)
 	if bilibiliShortLink != nil {
@@ -129,7 +132,7 @@ func download(videoURL string, config myconfig.Config) bool {
 	case "youku":
 		data, err = youku.Extract(videoURL, config)
 	case "youtube", "youtu": // youtu.be
-		data, err = youtube.Extract(videoURL, config)
+		data, err = youtube.Extract(videoURL, cache1, config)
 	case "iqiyi":
 		data, err = iqiyi.Extract(videoURL, config)
 	case "mgtv":
@@ -170,7 +173,6 @@ func download(videoURL string, config myconfig.Config) bool {
 		return true
 	}
 	var isErr bool
-	mycache.Cache = cache.New(time.Hour*2, time.Minute*5)
 	for _, item := range data {
 		if item.Err != nil {
 			// if this error occurs, the preparation step is normal, but the data extraction is wrong.
@@ -179,7 +181,7 @@ func download(videoURL string, config myconfig.Config) bool {
 			isErr = true
 			continue
 		}
-		err = downloader.Download(item, videoURL, config.ChunkSizeMB, mycache.Cache, "lalala", config)
+		err = downloader.Download(item, videoURL, config.ChunkSizeMB, cache1, "lalala", config)
 		if err != nil {
 			printError(item.URL, err)
 			isErr = true
@@ -190,6 +192,7 @@ func download(videoURL string, config myconfig.Config) bool {
 
 func main() {
 	config := myconfig.New()
+	// config.InfoOnly = true
 	flag.Parse()
 	args := flag.Args()
 	if config.Version {
