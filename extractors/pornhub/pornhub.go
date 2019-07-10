@@ -22,9 +22,10 @@ type pornhubData struct {
 // Extract is the main function for extracting data
 func Extract(url string, config myconfig.Config) ([]downloader.Data, error) {
 	var (
-		title    string
-		err      error
-		duration string
+		title     string
+		err       error
+		duration  string
+		thumbnail string
 	)
 	html, err := request.Get(url, url, nil, config)
 	if err != nil {
@@ -42,6 +43,13 @@ func Extract(url string, config myconfig.Config) ([]downloader.Data, error) {
 		duration = dur[1]
 	} else {
 		duration = "0"
+	}
+
+	thumb := utils.MatchOneOf(html, `meta property="og:image" content="(.+?)" />`)
+	if thumb != nil {
+		thumbnail = thumb[1]
+	} else {
+		thumbnail = ""
 	}
 
 	realURLs := utils.MatchOneOf(html, `"mediaDefinitions":(.+?),"isVertical"`)
