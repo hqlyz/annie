@@ -93,12 +93,13 @@ func Extract(url string, config myconfig.Config) ([]downloader.Data, error) {
 
 	return []downloader.Data{
 		{
-			Site:    "Pornhub pornhub.com",
-			Title:   title,
-			Type:    "video",
-			Streams: streams,
-			URL:     url,
-			Length:  duration,
+			Site:      "Pornhub pornhub.com",
+			Title:     title,
+			Type:      "video",
+			Streams:   streams,
+			URL:       url,
+			Length:    duration,
+			Thumbnail: thumbnail,
 		},
 	}, nil
 }
