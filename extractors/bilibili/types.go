@@ -55,6 +55,8 @@ type multiPageVideoData struct {
 type multiPage struct {
 	Aid       string             `json:"aid"`
 	VideoData multiPageVideoData `json:"videoData"`
+	Duration  string             `json:"duration"`
+	Thumbnail string             `json:"pic"`
 }
 
 var qualityString = map[int]string{
