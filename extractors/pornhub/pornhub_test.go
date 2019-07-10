@@ -7,6 +7,8 @@ import (
 	"github.com/hqlyz/annie/test"
 )
 
+var config = myconfig.New()
+
 func TestPornhub(t *testing.T) {
 	config.InfoOnly = true
 	config.RetryTimes = 10
@@ -26,7 +28,7 @@ func TestPornhub(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			data, err := Extract(tt.args.URL)
+			data, err := Extract(tt.args.URL, config)
 			test.CheckError(t, err)
 			test.Check(t, tt.args, data[0])
 		})
