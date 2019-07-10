@@ -160,7 +160,7 @@ func Headers(url, refer string, config myconfig.Config) (http.Header, error) {
 	headers := map[string]string{
 		"Referer": refer,
 	}
-	res, err := Request("GET", url, nil, headers, config)
+	res, err := Request(http.MethodHead, url, nil, headers, config)
 	if err != nil {
 		return nil, err
 	}

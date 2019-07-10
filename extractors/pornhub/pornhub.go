@@ -21,18 +21,27 @@ type pornhubData struct {
 
 // Extract is the main function for extracting data
 func Extract(url string, config myconfig.Config) ([]downloader.Data, error) {
-	var err error
+	var (
+		title    string
+		err      error
+		duration string
+	)
 	html, err := request.Get(url, url, nil, config)
 	if err != nil {
 		return downloader.EmptyList, err
 	}
-	var title string
 	ioutil.WriteFile("ph_html.html", []byte(html), 0666)
 	desc := utils.MatchOneOf(html, `<span class="inlineFree">(.+?)</span>`)
 	if desc != nil {
 		title = desc[1]
 	} else {
 		title = "pornhub video"
+	}
+	dur := utils.MatchOneOf(html, `meta property="video:duration" content="(.+?)" />`)
+	if dur != nil {
+		duration = dur[1]
+	} else {
+		duration = "0"
 	}
 
 	realURLs := utils.MatchOneOf(html, `"mediaDefinitions":(.+?),"isVertical"`)
@@ -81,7 +90,7 @@ func Extract(url string, config myconfig.Config) ([]downloader.Data, error) {
 			Type:    "video",
 			Streams: streams,
 			URL:     url,
-			Length:  "0",
+			Length:  duration,
 		},
 	}, nil
 }

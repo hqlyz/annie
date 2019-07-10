@@ -2,20 +2,22 @@ package youtube
 
 import (
 	"fmt"
-	"io/ioutil"
 	"net/url"
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
+
+	"github.com/patrickmn/go-cache"
 
 	"github.com/hqlyz/annie/myconfig"
 	"github.com/hqlyz/annie/request"
 )
 
-func getDownloadURL(stream url.Values, htmlPlayerFile string, config myconfig.Config) (string, error) {
+func getDownloadURL(stream url.Values, htmlPlayerFile string, cacheJL *cache.Cache, config myconfig.Config) (string, error) {
 	var signature string
 	if s := stream.Get("s"); len(s) > 0 {
-		tokens, err := getSigTokens(htmlPlayerFile, config)
+		tokens, err := getSigTokens(htmlPlayerFile, cacheJL, config)
 		if err != nil {
 			return "", err
 		}
@@ -97,18 +99,46 @@ var sliceRegexp = regexp.MustCompile(fmt.Sprintf("(?m)(?:^|,)(%s)%s", jsvarStr, 
 var spliceRegexp = regexp.MustCompile(fmt.Sprintf("(?m)(?:^|,)(%s)%s", jsvarStr, spliceStr))
 var swapRegexp = regexp.MustCompile(fmt.Sprintf("(?m)(?:^|,)(%s)%s", jsvarStr, swapStr))
 
-func getSigTokens(htmlPlayerFile string, config myconfig.Config) ([]string, error) {
+func getSigTokens(htmlPlayerFile string, cacheJL *cache.Cache, config myconfig.Config) ([]string, error) {
+	var (
+		body string
+		err  error
+	)
 	u, _ := url.Parse("https://www.youtube.com/watch")
 	p, err := url.Parse(htmlPlayerFile)
 	if err != nil {
 		return nil, err
 	}
 	fmt.Println("uresolve: " + u.ResolveReference(p).String())
-	body, err := request.Get(u.ResolveReference(p).String(), referer, nil, config)
-	if err != nil {
-		return nil, err
+	baseJL, found := cacheJL.Get("lalala")
+	if !found {
+		body, err = request.Get(u.ResolveReference(p).String(), referer, nil, config)
+		if err != nil {
+			return nil, err
+		}
+		cacheJL.Set("lalala", body, time.Hour*1)
+	} else {
+		body = baseJL.(string)
 	}
-	ioutil.WriteFile("body.html", []byte(body), 0666)
+	/***** store as file *****/
+	// _, err = os.Stat("body.js")
+	// if err != nil {
+	// 	body, err := request.Get(u.ResolveReference(p).String(), referer, nil, config)
+	// 	if err != nil {
+	// 		return nil, err
+	// 	}
+	// 	ioutil.WriteFile("body.js", []byte(body), 0666)
+	// } else {
+	// 	// file, err := os.Open("body.js")
+	// 	// if err != nil {
+	// 	// 	return nil, err
+	// 	// }
+	// 	contentBytes, err := ioutil.ReadFile("body.js")
+	// 	if err != nil {
+	// 		return nil, err
+	// 	}
+	// 	body = string(contentBytes)
+	// }
 
 	objResult := actionsObjRegexp.FindStringSubmatch(body)
 	funcResult := actionsFuncRegexp.FindStringSubmatch(body)

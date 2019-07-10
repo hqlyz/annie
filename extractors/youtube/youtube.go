@@ -9,6 +9,8 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/patrickmn/go-cache"
+
 	"github.com/hqlyz/annie/downloader"
 	"github.com/hqlyz/annie/myconfig"
 	"github.com/hqlyz/annie/request"
@@ -100,10 +102,10 @@ const referer = "https://www.youtube.com"
 // }
 
 // Extract is the main function for extracting data
-func Extract(uri string, config myconfig.Config) ([]downloader.Data, error) {
+func Extract(uri string, cacheJL *cache.Cache, config myconfig.Config) ([]downloader.Data, error) {
 	var err error
 	if !config.Playlist {
-		return []downloader.Data{youtubeDownload(uri, config)}, nil
+		return []downloader.Data{youtubeDownload(uri, cacheJL, config)}, nil
 	}
 	listID := utils.MatchOneOf(uri, `(list|p)=([^/&]+)`)[2]
 	if listID == "" {
@@ -129,7 +131,7 @@ func Extract(uri string, config myconfig.Config) ([]downloader.Data, error) {
 		wgp.Add()
 		go func(index int, u string, extractedData []downloader.Data) {
 			defer wgp.Done()
-			extractedData[index] = youtubeDownload(u, config)
+			extractedData[index] = youtubeDownload(u, cacheJL, config)
 		}(dataIndex, u, extractedData)
 		dataIndex++
 	}
@@ -138,7 +140,7 @@ func Extract(uri string, config myconfig.Config) ([]downloader.Data, error) {
 }
 
 // youtubeDownload download function for single url
-func youtubeDownload(uri string, config myconfig.Config) downloader.Data {
+func youtubeDownload(uri string, cacheJL *cache.Cache, config myconfig.Config) downloader.Data {
 	var err error
 	vid := utils.MatchOneOf(
 		uri,
@@ -178,7 +180,7 @@ func youtubeDownload(uri string, config myconfig.Config) downloader.Data {
 		return downloader.EmptyData(uri, err)
 	}
 
-	streams, err := extractVideoURLS(youtube, uri, config)
+	streams, err := extractVideoURLS(youtube, uri, cacheJL, config)
 	if err != nil {
 		return downloader.EmptyData(uri, err)
 	}
@@ -196,7 +198,7 @@ func youtubeDownload(uri string, config myconfig.Config) downloader.Data {
 	}
 }
 
-func extractVideoURLS(data youtubeData, referer string, config myconfig.Config) (map[string]downloader.Stream, error) {
+func extractVideoURLS(data youtubeData, referer string, cacheJL *cache.Cache, config myconfig.Config) (map[string]downloader.Stream, error) {
 	var youtubeStreams []string
 	if config.YouTubeStream2 || data.Args.Stream == "" {
 		youtubeStreams = strings.Split(data.Args.Stream2, ",")
@@ -236,7 +238,7 @@ func extractVideoURLS(data youtubeData, referer string, config myconfig.Config) 
 		// if err != nil {
 		// 	return nil, err
 		// }
-		realURL, err := getDownloadURL(stream, data.Assets.JS, config)
+		realURL, err := getDownloadURL(stream, data.Assets.JS, cacheJL, config)
 		if err != nil {
 			return nil, err
 		}
