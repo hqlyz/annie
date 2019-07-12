@@ -14,6 +14,8 @@ import (
 	"github.com/hqlyz/annie/request"
 )
 
+var youtubeSigKey = "youtubesigkey"
+
 func getDownloadURL(stream url.Values, htmlPlayerFile string, cacheJL *cache.Cache, config myconfig.Config) (string, error) {
 	var signature string
 	if s := stream.Get("s"); len(s) > 0 {
@@ -110,13 +112,13 @@ func getSigTokens(htmlPlayerFile string, cacheJL *cache.Cache, config myconfig.C
 		return nil, err
 	}
 	fmt.Println("uresolve: " + u.ResolveReference(p).String())
-	baseJL, found := cacheJL.Get("lalala")
+	baseJL, found := cacheJL.Get(youtubeSigKey)
 	if !found {
 		body, err = request.Get(u.ResolveReference(p).String(), referer, nil, config)
 		if err != nil {
 			return nil, err
 		}
-		cacheJL.Set("lalala", body, time.Hour*1)
+		cacheJL.Set(youtubeSigKey, body, time.Hour*1)
 	} else {
 		body = baseJL.(string)
 	}
