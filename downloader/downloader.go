@@ -293,7 +293,7 @@ func Download(v Data, refer string, chunkSizeMB int, cacheJL *cache.Cache, token
 	v.genSortedStreams()
 	if config.ExtractedData {
 		jsonData, _ := json.MarshalIndent(v, "", "    ")
-		// fmt.Printf("%s\n", jsonData)
+		fmt.Printf("%s\n", jsonData)
 		return nil
 	}
 	var (
