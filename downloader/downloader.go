@@ -111,6 +111,7 @@ func writeFile(url string, file *os.File, headers map[string]string, bar *pb.Pro
 
 	// merge files
 	if err != nil {
+		fmt.Println(err.Error())
 		return 0, err
 	}
 	for i := 0; i < goroutineNum; i++ {
@@ -292,7 +293,7 @@ func Download(v Data, refer string, chunkSizeMB int, cacheJL *cache.Cache, token
 	v.genSortedStreams()
 	if config.ExtractedData {
 		jsonData, _ := json.MarshalIndent(v, "", "    ")
-		fmt.Printf("%s\n", jsonData)
+		// fmt.Printf("%s\n", jsonData)
 		return nil
 	}
 	var (
