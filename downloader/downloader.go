@@ -61,7 +61,7 @@ func writeFile(url string, file *os.File, headers map[string]string, bar *pb.Pro
 		res *http.Response
 		err error
 	)
-	cacheJL.Set(token+"d", int64(0), time.Minute*10)
+	// cacheJL.Set(token+"d", int64(0), time.Minute*10)
 	res, err = request.Request("GET", url, nil, headers, config)
 	if err != nil {
 		return 0, err
