@@ -358,7 +358,8 @@ func Download(v Data, refer string, chunkSizeMB int, cacheJL *cache.Cache, token
 	}
 	var err error
 	// Skip the complete file that has been merged
-	mergedFilePath, err := utils.FilePath(title, "mp4", false, config)
+	// mergedFilePath, err := utils.FilePath(title, "mp4", false, config)
+	mergedFilePath, err := utils.FilePath(title, data.URLs[0].Ext, false, config)
 	if err != nil {
 		return err
 	}

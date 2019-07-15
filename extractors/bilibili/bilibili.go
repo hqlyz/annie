@@ -99,13 +99,27 @@ func genURL(durl []dURLData) ([]downloader.URL, int64) {
 }
 
 type bilibiliOptions struct {
-	url      string
-	html     string
-	bangumi  bool
-	aid      string
-	cid      string
-	page     int
-	subtitle string
+	url       string
+	html      string
+	bangumi   bool
+	aid       string
+	cid       string
+	page      int
+	subtitle  string
+	thumbnail string
+	length    string
+}
+
+type playInfo struct {
+	Data    dataInfo `json:"data"`
+	Session string   `json:"session"`
+	Ttl     int      `json:"ttl"`
+}
+
+type dataInfo struct {
+	From       string `json:"from"`
+	Result     string `json:"result"`
+	TimeLength int    `json:"timelength"`
 }
 
 func extractBangumi(url, html string, config myconfig.Config) ([]downloader.Data, error) {
@@ -182,7 +196,11 @@ func extractNormalVideo(url, html string, config myconfig.Config) ([]downloader.
 		// <h1> tag does not include subtitles
 		// bangumi doesn't need this
 		pageString := utils.MatchOneOf(url, `\?p=(\d+)`)
-		var p int
+		var (
+			p         int
+			thumbnail string
+			length    string
+		)
 		if pageString == nil {
 			// https://www.bilibili.com/video/av20827366/
 			p = 1
@@ -190,14 +208,35 @@ func extractNormalVideo(url, html string, config myconfig.Config) ([]downloader.
 			// https://www.bilibili.com/video/av20827366/?p=2
 			p, _ = strconv.Atoi(pageString[1])
 		}
+		thumbnailString := utils.MatchOneOf(html, `property="og:image" content="(.+?)"`)
+		if thumbnailString != nil {
+			thumbnail = thumbnailString[1]
+		} else {
+			thumbnail = ""
+		}
+
+		playInfoString := utils.MatchOneOf(html, `__playinfo__=(.+?)</script><script>`)
+		ioutil.WriteFile("playinfo", []byte(playInfoString[1]), 0644)
+		if playInfoString != nil {
+			var pInfo playInfo
+			err := json.Unmarshal([]byte(playInfoString[1]), &pInfo)
+			if err != nil {
+				fmt.Println(err.Error())
+			}
+			length = strconv.Itoa(pInfo.Data.TimeLength / 1000)
+		} else {
+			length = "0"
+		}
 
 		page := pageData.VideoData.Pages[p-1]
 		options := bilibiliOptions{
-			url:  url,
-			html: html,
-			aid:  pageData.Aid,
-			cid:  strconv.Itoa(page.Cid),
-			page: p,
+			url:       url,
+			html:      html,
+			aid:       pageData.Aid,
+			cid:       strconv.Itoa(page.Cid),
+			page:      p,
+			thumbnail: thumbnail,
+			length:    length,
 		}
 		// "part":"" or "part":"Untitled"
 		if page.Part == "Untitled" || len(pageData.VideoData.Pages) == 1 {
@@ -340,10 +379,12 @@ func bilibiliDownload(options bilibiliOptions, config myconfig.Config) downloade
 	)
 
 	return downloader.Data{
-		Site:    "哔哩哔哩 bilibili.com",
-		Title:   title,
-		Type:    "video",
-		Streams: streams,
-		URL:     options.url,
+		Site:      "哔哩哔哩 bilibili.com",
+		Title:     title,
+		Type:      "video",
+		Streams:   streams,
+		URL:       options.url,
+		Thumbnail: options.thumbnail,
+		Length:    options.length,
 	}
 }
