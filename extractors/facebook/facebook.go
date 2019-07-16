@@ -2,6 +2,7 @@ package facebook
 
 import (
 	"fmt"
+	"io/ioutil"
 
 	"github.com/hqlyz/annie/myconfig"
 
@@ -15,8 +16,10 @@ func Extract(url string, config myconfig.Config) ([]downloader.Data, error) {
 	var err error
 	html, err := request.Get(url, url, nil, config)
 	if err != nil {
+		fmt.Println(err)
 		return downloader.EmptyList, err
 	}
+	ioutil.WriteFile("fb.html", []byte(html), 0666)
 	title := utils.MatchOneOf(html, `<title id="pageTitle">(.+)</title>`)[1]
 
 	streams := map[string]downloader.Stream{}
