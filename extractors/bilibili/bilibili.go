@@ -124,18 +124,46 @@ type dataInfo struct {
 
 func extractBangumi(url, html string, config myconfig.Config) ([]downloader.Data, error) {
 	dataString := utils.MatchOneOf(html, `window.__INITIAL_STATE__=(.+?);\(function`)[1]
-	var data bangumiData
+	var (
+		data      bangumiData
+		thumbnail string
+		length    string
+	)
 	err := json.Unmarshal([]byte(dataString), &data)
 	if err != nil {
 		return downloader.EmptyList, err
 	}
+	thumbnailString := utils.MatchOneOf(html, `property="og:image" content="(.+?)"`)
+	if thumbnailString != nil {
+		thumbnail = thumbnailString[1]
+	} else {
+		thumbnail = ""
+	}
+
+	playInfoString := utils.MatchOneOf(html, `__playinfo__=(.+?)</script><script>`)
+	if playInfoString != nil {
+		var pInfo playInfo
+		err := json.Unmarshal([]byte(playInfoString[1]), &pInfo)
+		if err != nil {
+			fmt.Println(err.Error())
+			length = "0"
+		} else {
+			length = strconv.Itoa(pInfo.Data.TimeLength / 1000)
+		}
+	} else {
+		length = "0"
+	}
+	fmt.Println(thumbnail)
+	fmt.Println(length)
 	if !config.Playlist {
 		options := bilibiliOptions{
-			url:     url,
-			html:    html,
-			bangumi: true,
-			aid:     strconv.Itoa(data.EpInfo.Aid),
-			cid:     strconv.Itoa(data.EpInfo.Cid),
+			url:       url,
+			html:      html,
+			bangumi:   true,
+			aid:       strconv.Itoa(data.EpInfo.Aid),
+			cid:       strconv.Itoa(data.EpInfo.Cid),
+			thumbnail: thumbnail,
+			length:    length,
 		}
 		return []downloader.Data{bilibiliDownload(options, config)}, nil
 	}
@@ -156,10 +184,12 @@ func extractBangumi(url, html string, config myconfig.Config) ([]downloader.Data
 		}
 		// html content can't be reused here
 		options := bilibiliOptions{
-			url:     fmt.Sprintf("https://www.bilibili.com/bangumi/play/ep%d", id),
-			bangumi: true,
-			aid:     strconv.Itoa(u.Aid),
-			cid:     strconv.Itoa(u.Cid),
+			url:       fmt.Sprintf("https://www.bilibili.com/bangumi/play/ep%d", id),
+			bangumi:   true,
+			aid:       strconv.Itoa(u.Aid),
+			cid:       strconv.Itoa(u.Cid),
+			thumbnail: thumbnail,
+			length:    length,
 		}
 		go func(index int, options bilibiliOptions, extractedData []downloader.Data) {
 			defer wgp.Done()
@@ -191,15 +221,38 @@ func extractNormalVideo(url, html string, config myconfig.Config) ([]downloader.
 	if err != nil {
 		return downloader.EmptyList, err
 	}
+	var (
+		thumbnail string
+		length    string
+	)
+
+	thumbnailString := utils.MatchOneOf(html, `property="og:image" content="(.+?)"`)
+	if thumbnailString != nil {
+		thumbnail = thumbnailString[1]
+	} else {
+		thumbnail = ""
+	}
+
+	playInfoString := utils.MatchOneOf(html, `__playinfo__=(.+?)</script><script>`)
+	if playInfoString != nil {
+		var pInfo playInfo
+		err := json.Unmarshal([]byte(playInfoString[1]), &pInfo)
+		if err != nil {
+			fmt.Println(err.Error())
+			length = "0"
+		} else {
+			length = strconv.Itoa(pInfo.Data.TimeLength / 1000)
+		}
+	} else {
+		length = "0"
+	}
 	if !config.Playlist {
 		// handle URL that has a playlist, mainly for unified titles
 		// <h1> tag does not include subtitles
 		// bangumi doesn't need this
 		pageString := utils.MatchOneOf(url, `\?p=(\d+)`)
 		var (
-			p         int
-			thumbnail string
-			length    string
+			p int
 		)
 		if pageString == nil {
 			// https://www.bilibili.com/video/av20827366/
@@ -207,25 +260,6 @@ func extractNormalVideo(url, html string, config myconfig.Config) ([]downloader.
 		} else {
 			// https://www.bilibili.com/video/av20827366/?p=2
 			p, _ = strconv.Atoi(pageString[1])
-		}
-		thumbnailString := utils.MatchOneOf(html, `property="og:image" content="(.+?)"`)
-		if thumbnailString != nil {
-			thumbnail = thumbnailString[1]
-		} else {
-			thumbnail = ""
-		}
-
-		playInfoString := utils.MatchOneOf(html, `__playinfo__=(.+?)</script><script>`)
-		ioutil.WriteFile("playinfo", []byte(playInfoString[1]), 0644)
-		if playInfoString != nil {
-			var pInfo playInfo
-			err := json.Unmarshal([]byte(playInfoString[1]), &pInfo)
-			if err != nil {
-				fmt.Println(err.Error())
-			}
-			length = strconv.Itoa(pInfo.Data.TimeLength / 1000)
-		} else {
-			length = "0"
 		}
 
 		page := pageData.VideoData.Pages[p-1]
@@ -259,12 +293,14 @@ func extractNormalVideo(url, html string, config myconfig.Config) ([]downloader.
 		}
 		wgp.Add()
 		options := bilibiliOptions{
-			url:      url,
-			html:     html,
-			aid:      pageData.Aid,
-			cid:      strconv.Itoa(u.Cid),
-			subtitle: u.Part,
-			page:     u.Page,
+			url:       url,
+			html:      html,
+			aid:       pageData.Aid,
+			cid:       strconv.Itoa(u.Cid),
+			subtitle:  u.Part,
+			page:      u.Page,
+			thumbnail: thumbnail,
+			length:    length,
 		}
 		go func(index int, options bilibiliOptions, extractedData []downloader.Data) {
 			defer wgp.Done()
