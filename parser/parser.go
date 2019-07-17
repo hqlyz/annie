@@ -2,6 +2,8 @@ package parser
 
 import (
 	"fmt"
+	"io/ioutil"
+	"net/url"
 	"strings"
 
 	"github.com/hqlyz/annie/myconfig"
@@ -12,6 +14,13 @@ import (
 	"github.com/hqlyz/annie/request"
 	"github.com/hqlyz/annie/utils"
 )
+
+// SearchVideoData - the data structure of video info
+type SearchVideoData struct {
+	Img string `json:"img"`
+	URL string `json:"url"`
+	Dur string `json:"dur"`
+}
 
 // GetDoc return Document object of the HTML string
 func GetDoc(html string) (*goquery.Document, error) {
@@ -71,4 +80,30 @@ func Title(doc *goquery.Document) string {
 		title = doc.Find("title").Text()
 	}
 	return title
+}
+
+// GetSearchVideosInfo - get videos info with google search
+func GetSearchVideosInfo(keyword string, config myconfig.Config) []SearchVideoData {
+	searchURL := "https://www.google.com/search?tbm=vid&q=" + url.QueryEscape(keyword)
+	html, err := request.Get(searchURL, "", myconfig.FakeHeaders, config)
+	if err != nil {
+		return nil
+	}
+	ioutil.WriteFile("search_html.html", []byte(html), 0644)
+	urls := utils.MatchAll(html, `<div class="r"><a href="(.+?)"`)
+	fmt.Println(urls)
+	imgs := utils.MatchAll(html, `<img id="vidthumb." src="(.+?)"`)
+	fmt.Println(imgs)
+	// durs := utils.MatchAll(html, `<span class="vdur[^"]*">&#9654;&nbsp;([^<]+)<`)
+	var searchVideoData []SearchVideoData
+	for key := range urls {
+		temp, _ := url.QueryUnescape(urls[key][1])
+		item := SearchVideoData{
+			Img: temp,
+			URL: temp,
+			Dur: temp,
+		}
+		searchVideoData = append(searchVideoData, item)
+	}
+	return searchVideoData
 }
