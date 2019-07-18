@@ -162,5 +162,8 @@ var FakeHeaders = map[string]string{
 	"User-Agent":      "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_13_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/69.0.3497.81 Safari/537.36",
 }
 
+// SupportDomain -
+var SupportDomain = []string{"douyin", "iesdouyin", "bilibili", "bcy", "pixivision", "youku", "youtube", "youtu", "iqiyi", "mgtv", "tumblr", "vimeo", "facebook", "douyu", "miaopai", "163", "weibo", "instagram", "twitter", "qq", "yinyuetai", "geekbang"}
+
 // YoutubeSigBaseKey - key of youtube sig base js
 var YoutubeSigBaseKey = "youtube_sig_base_key"

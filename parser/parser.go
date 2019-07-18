@@ -17,9 +17,10 @@ import (
 
 // SearchVideoData - the data structure of video info
 type SearchVideoData struct {
-	Img string `json:"img"`
-	URL string `json:"url"`
-	Dur string `json:"dur"`
+	Title string `json:"title"`
+	Img   string `json:"img"`
+	URL   string `json:"url"`
+	Dur   string `json:"dur"`
 }
 
 // GetDoc return Document object of the HTML string
@@ -90,20 +91,63 @@ func GetSearchVideosInfo(keyword string, config myconfig.Config) []SearchVideoDa
 		return nil
 	}
 	ioutil.WriteFile("search_html.html", []byte(html), 0644)
+	titles := utils.MatchAll(html, `<h3 class="LC20lb">(.+?)</h3>`)
 	urls := utils.MatchAll(html, `<div class="r"><a href="(.+?)"`)
-	fmt.Println(urls)
-	imgs := utils.MatchAll(html, `<img id="vidthumb." src="(.+?)"`)
-	fmt.Println(imgs)
-	// durs := utils.MatchAll(html, `<span class="vdur[^"]*">&#9654;&nbsp;([^<]+)<`)
-	var searchVideoData []SearchVideoData
+	imgs1 := utils.MatchAll(html, `var s='(.+?)';var ii=\['vidthumb`)
+	imgs2 := utils.MatchAll(html, `"vidthumb.":"(.+?)"`)
+	imgs := append(imgs1, imgs2...)
+	durs := utils.MatchAll(html, `<span class="vdur[^"]*">&#9654;&nbsp;([^<]+)<`)
+	var (
+		searchVideoData []SearchVideoData
+		tempURL         string
+		dur             string
+		img             string
+		title           string
+	)
 	for key := range urls {
-		temp, _ := url.QueryUnescape(urls[key][1])
+		tempURL, err = url.QueryUnescape(urls[key][1])
+		if err != nil {
+			continue
+		}
+		if !isInArray(myconfig.SupportDomain, utils.Domain(tempURL)) {
+			continue
+		}
+		if key < len(titles) {
+			title = titles[key][1]
+		} else {
+			title = ""
+		}
+		if key < len(durs) {
+			dur, err = url.QueryUnescape(durs[key][1])
+			if err != nil {
+				continue
+			}
+		} else {
+			dur = "0"
+		}
+		if key < len(imgs) {
+			img = imgs[key][1]
+			img = strings.Replace(img, `\u003d`, "=", -1)
+			img = strings.Replace(img, `\x3d`, "=", -1)
+		} else {
+			img = ""
+		}
 		item := SearchVideoData{
-			Img: temp,
-			URL: temp,
-			Dur: temp,
+			Img:   img,
+			URL:   tempURL,
+			Dur:   dur,
+			Title: title,
 		}
 		searchVideoData = append(searchVideoData, item)
 	}
 	return searchVideoData
+}
+
+func isInArray(arr []string, str string) bool {
+	for _, s := range arr {
+		if s == str {
+			return true
+		}
+	}
+	return false
 }
