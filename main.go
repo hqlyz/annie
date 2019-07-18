@@ -192,7 +192,7 @@ func download(videoURL string, config myconfig.Config) bool {
 
 func main() {
 	config := myconfig.New()
-	// config.InfoOnly = true
+	config.InfoOnly = true
 	flag.Parse()
 	args := flag.Args()
 	if config.Version {

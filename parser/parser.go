@@ -130,7 +130,7 @@ func GetSearchVideosInfo(keyword string, config myconfig.Config) []SearchVideoDa
 			img = strings.Replace(img, `\u003d`, "=", -1)
 			img = strings.Replace(img, `\x3d`, "=", -1)
 		} else {
-			img = ""
+			img = "http://www.videohandler.com/images/sri-default.jpg"
 		}
 		item := SearchVideoData{
 			Img:   img,

@@ -186,15 +186,15 @@ func youtubeDownload(uri string, cacheJL *cache.Cache, config myconfig.Config) d
 	}
 
 	return downloader.Data{
-		Site:            "YouTube youtube.com",
-		Title:           title,
-		Type:            "video",
-		Streams:         streams,
-		URL:             uri,
-		Thumbnail:       ytThumbnail.VideoDetails.Thumbnail.Thumbnails[1].URL,
-		ThumbnailWidth:  ytThumbnail.VideoDetails.Thumbnail.Thumbnails[1].Width,
-		ThumbnailHeight: ytThumbnail.VideoDetails.Thumbnail.Thumbnails[1].Height,
-		Length:          ytThumbnail.VideoDetails.LengthSeconds,
+		Site:      "YouTube youtube.com",
+		Title:     title,
+		Type:      "video",
+		Streams:   streams,
+		URL:       uri,
+		Thumbnail: ytThumbnail.VideoDetails.Thumbnail.Thumbnails[1].URL,
+		// ThumbnailWidth:  ytThumbnail.VideoDetails.Thumbnail.Thumbnails[1].Width,
+		// ThumbnailHeight: ytThumbnail.VideoDetails.Thumbnail.Thumbnails[1].Height,
+		Length: ytThumbnail.VideoDetails.LengthSeconds,
 	}
 }
 
@@ -207,6 +207,9 @@ func extractVideoURLS(data youtubeData, referer string, cacheJL *cache.Cache, co
 	}
 	var ext string
 	var audio downloader.URL
+	var audioWebm downloader.URL
+	var audioFound bool
+	var audioWebmFound bool
 	streams := map[string]downloader.Stream{}
 
 	for _, s := range youtubeStreams {
@@ -217,7 +220,7 @@ func extractVideoURLS(data youtubeData, referer string, cacheJL *cache.Cache, co
 		}
 		itag := stream.Get("itag")
 		streamType := stream.Get("type")
-		isAudio := strings.HasPrefix(streamType, "audio/mp4")
+		isAudio := strings.HasPrefix(streamType, "audio")
 
 		quality := stream.Get("quality_label")
 		if quality == "" {
@@ -234,18 +237,10 @@ func extractVideoURLS(data youtubeData, referer string, cacheJL *cache.Cache, co
 		} else {
 			ext = utils.MatchOneOf(streamType, `(\w+)/(\w+);`)[2]
 		}
-		// realURL, err := genSignedURL(stream.Get("url"), stream, data.Assets.JS)
-		// if err != nil {
-		// 	return nil, err
-		// }
 		realURL, err := getDownloadURL(stream, data.Assets.JS, cacheJL, config)
 		if err != nil {
 			return nil, err
 		}
-		// fmt.Println("realURL: " + realURL)
-		// fmt.Println("url: " + stream.Get("url"))
-		// realURL := stream.Get("url")
-		// size, err := request.Size(realURL, referer)
 		sizeStr := stream.Get("clen")
 		size := int64(0)
 		if sizeStr != "" {
@@ -267,7 +262,13 @@ func extractVideoURLS(data youtubeData, referer string, cacheJL *cache.Cache, co
 		}
 		if isAudio {
 			// Audio data for merging with video
-			audio = urlData
+			if strings.Contains(quality, "webm") && !audioWebmFound {
+				audioWebm = urlData
+				audioWebmFound = true
+			} else if !strings.Contains(quality, "webm") && !audioFound {
+				audio = urlData
+				audioFound = true
+			}
 		}
 		streams[itag] = downloader.Stream{
 			URLs:    []downloader.URL{urlData},
@@ -288,8 +289,13 @@ func extractVideoURLS(data youtubeData, referer string, cacheJL *cache.Cache, co
 	// All videos here have no sound and need to be added separately
 	for itag, f := range streams {
 		if strings.Contains(f.Quality, "video/") {
-			f.Size += audio.Size
-			f.URLs = append(f.URLs, audio)
+			if f.URLs[0].Ext == "webm" {
+				f.Size += audioWebm.Size
+				f.URLs = append(f.URLs, audioWebm)
+			} else {
+				f.Size += audio.Size
+				f.URLs = append(f.URLs, audio)
+			}
 			streams[itag] = f
 		}
 	}
