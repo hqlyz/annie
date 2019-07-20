@@ -123,7 +123,11 @@ func writeFile(url string, file *os.File, headers map[string]string, bar *pb.Pro
 		}
 		seek := int64(i) * fragmentSize
 		file.Seek(seek, 0)
-		io.Copy(file, tempFile)
+		_, err = io.Copy(file, tempFile)
+		if err != nil {
+			fmt.Println(err.Error())
+			return 0, err
+		}
 		tempFile.Close()
 		err = os.Remove(file.Name() + strconv.Itoa(i))
 		if err != nil {
