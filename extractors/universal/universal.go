@@ -13,7 +13,7 @@ import (
 // Extract is the main function for extracting data
 func Extract(url string, config myconfig.Config) ([]downloader.Data, error) {
 	fmt.Println()
-	fmt.Println("annie doesn't support this URL right now, but it will try to download it directly")
+	fmt.Println("videohandler doesn't support this URL right now, but it will try to download it directly")
 
 	filename, ext, err := utils.GetNameAndExt(url, config)
 	if err != nil {

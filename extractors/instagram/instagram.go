@@ -2,6 +2,8 @@ package instagram
 
 import (
 	"encoding/json"
+	"io/ioutil"
+	"strconv"
 
 	"github.com/hqlyz/annie/myconfig"
 
@@ -25,6 +27,8 @@ type instagram struct {
 							} `json:"node"`
 						} `json:"edges"`
 					} `json:"edge_sidecar_to_children"`
+					Duration  float64 `json:"video_duration"`
+					Thumbnail string  `json:"thumbnail_src"`
 				} `json:"shortcode_media"`
 			} `json:"graphql"`
 		} `json:"PostPage"`
@@ -37,6 +41,7 @@ func Extract(url string, config myconfig.Config) ([]downloader.Data, error) {
 	if err != nil {
 		return downloader.EmptyList, err
 	}
+	ioutil.WriteFile("E:/instagram.html", []byte(html), 0644)
 	// get the title
 	doc, err := parser.GetDoc(html)
 	if err != nil {
@@ -114,14 +119,26 @@ func Extract(url string, config myconfig.Config) ([]downloader.Data, error) {
 			}
 		}
 	}
-
+	var (
+		dur       int
+		thumbnail string
+	)
+	if dataType == "video" {
+		dur = int(data.EntryData.PostPage[0].Graphql.ShortcodeMedia.Duration)
+		thumbnail = data.EntryData.PostPage[0].Graphql.ShortcodeMedia.Thumbnail
+	} else {
+		dur = 0
+		thumbnail = ""
+	}
 	return []downloader.Data{
 		{
-			Site:    "Instagram instagram.com",
-			Title:   title,
-			Type:    dataType,
-			Streams: streams,
-			URL:     url,
+			Site:      "Instagram instagram.com",
+			Title:     title,
+			Type:      dataType,
+			Streams:   streams,
+			URL:       url,
+			Length:    strconv.Itoa(dur),
+			Thumbnail: thumbnail,
 		},
 	}, nil
 }

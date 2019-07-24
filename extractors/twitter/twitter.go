@@ -3,6 +3,7 @@ package twitter
 import (
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"strconv"
 	"strings"
 
@@ -27,7 +28,17 @@ func Extract(uri string, config myconfig.Config) ([]downloader.Data, error) {
 	if err != nil {
 		return downloader.EmptyList, err
 	}
-	username := utils.MatchOneOf(html, `property="og:title"\s+content="(.+)"`)[1]
+	ioutil.WriteFile("E:/twitter.html", []byte(html), 0644)
+	usernameArr := utils.MatchOneOf(html, `property="og:title"\s+content="(.+)"`)
+	if len(usernameArr) < 2 {
+		return downloader.EmptyList, err
+	}
+	username := usernameArr[1]
+
+	tweetIDArr := utils.MatchOneOf(uri, `(status|statuses)/(\d+)`)
+	if len(tweetIDArr) < 3 {
+		return downloader.EmptyList, err
+	}
 	tweetID := utils.MatchOneOf(uri, `(status|statuses)/(\d+)`)[2]
 	api := fmt.Sprintf(
 		"https://api.twitter.com/1.1/videos/tweet/config/%s.json", tweetID,
@@ -83,7 +94,11 @@ func download(data twitter, uri string, config myconfig.Config) ([]downloader.Da
 				totalSize += size
 				urls = append(urls, temp)
 			}
-			qualityString := utils.MatchOneOf(m3u8, `/(\d+x\d+)/`)[1]
+			qualityStringArr := utils.MatchOneOf(m3u8, `/(\d+x\d+)/`)
+			if len(qualityStringArr) < 2 {
+				return downloader.EmptyList, err
+			}
+			qualityString := qualityStringArr[1]
 			quality := strconv.Itoa(index + 1)
 			streams[quality] = downloader.Stream{
 				Quality: qualityString,

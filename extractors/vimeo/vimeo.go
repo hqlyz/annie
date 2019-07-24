@@ -2,6 +2,7 @@ package vimeo
 
 import (
 	"encoding/json"
+	"io/ioutil"
 	"strconv"
 	"strings"
 
@@ -29,7 +30,13 @@ type vimeoRequest struct {
 }
 
 type vimeoVideo struct {
-	Title string `json:"title"`
+	Title    string    `json:"title"`
+	Duration int       `json:"duration"`
+	Thumbs   thumbData `json:"thumbs"`
+}
+
+type thumbData struct {
+	T640 string `json:"640"`
 }
 
 type vimeo struct {
@@ -55,6 +62,7 @@ func Extract(url string, config myconfig.Config) ([]downloader.Data, error) {
 			return downloader.EmptyList, err
 		}
 	}
+	ioutil.WriteFile("E:/vimeo.html", []byte(html), 0644)
 	jsonString := utils.MatchOneOf(html, `var \w+\s?=\s?({.+?});`)[1]
 	var vimeoData vimeo
 	json.Unmarshal([]byte(jsonString), &vimeoData)
@@ -80,11 +88,13 @@ func Extract(url string, config myconfig.Config) ([]downloader.Data, error) {
 
 	return []downloader.Data{
 		{
-			Site:    "Vimeo vimeo.com",
-			Title:   vimeoData.Video.Title,
-			Type:    "video",
-			Streams: streams,
-			URL:     url,
+			Site:      "Vimeo vimeo.com",
+			Title:     vimeoData.Video.Title,
+			Type:      "video",
+			Streams:   streams,
+			URL:       url,
+			Thumbnail: vimeoData.Video.Thumbs.T640,
+			Length:    strconv.Itoa(vimeoData.Video.Duration),
 		},
 	}, nil
 }
