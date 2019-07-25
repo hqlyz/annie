@@ -231,12 +231,13 @@ func extractVideoURLS(data youtubeData, referer string, cacheJL *cache.Cache, co
 		} else {
 			quality = streamType
 		}
-		if isAudio {
-			// audio file use m4a extension
-			ext = "m4a"
-		} else {
-			ext = utils.MatchOneOf(streamType, `(\w+)/(\w+);`)[2]
-		}
+		// if isAudio {
+		// 	// audio file use m4a extension
+		// 	ext = "m4a"
+		// } else {
+		// 	ext = utils.MatchOneOf(streamType, `(\w+)/(\w+);`)[2]
+		// }
+		ext = utils.MatchOneOf(streamType, `(\w+)/(\w+);`)[2]
 		realURL, err := getDownloadURL(stream, data.Assets.JS, cacheJL, config)
 		if err != nil {
 			return nil, err

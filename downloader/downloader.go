@@ -193,10 +193,11 @@ func fragmentDownload(destURL string, headers map[string]string, bar *pb.Progres
 // Save save url file
 func Save(urlData URL, refer, fileName string, bar *pb.ProgressBar, chunkSizeMB int, cacheJL *cache.Cache, token string, config myconfig.Config) error {
 	var err error
-	filePath, err := utils.FilePath(fileName, urlData.Ext, false, config)
+	filePath, err := utils.FilePath(fileName, urlData.Ext, true, config)
 	if err != nil {
 		return err
 	}
+	// filePath = strings.Replace(filePath, "\\", " ", -1)
 	fileSize, exists, err := utils.FileSize(filePath)
 	if err != nil {
 		return err
@@ -231,6 +232,7 @@ func Save(urlData URL, refer, fileName string, bar *pb.ProgressBar, chunkSizeMB 
 	} else {
 		// file, fileError = os.Create(tempFilePath)
 		file, fileError = os.OpenFile(tempFilePath, os.O_CREATE|os.O_APPEND|os.O_RDWR, 0644)
+		// fmt.Println(tempFilePath)
 	}
 	if fileError != nil {
 		return fileError
@@ -374,7 +376,7 @@ func Download(v Data, refer string, chunkSizeMB int, cacheJL *cache.Cache, token
 	// After the merge, the file size has changed, so we do not check whether the size matches
 	var convertCacheValue string
 	if len(data.URLs) == 1 {
-		convertCacheValue = config.OutputPath + "/" + title + "." + data.URLs[0].Ext
+		convertCacheValue = config.OutputPath + "/" + strings.Replace(title, "/", " ", -1) + "." + data.URLs[0].Ext
 	} else {
 		convertCacheValue = mergedFilePath
 	}
