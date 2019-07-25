@@ -2,7 +2,6 @@ package facebook
 
 import (
 	"fmt"
-	"io/ioutil"
 
 	"github.com/hqlyz/annie/myconfig"
 

@@ -2,7 +2,6 @@ package bcy
 
 import (
 	"encoding/json"
-	"io/ioutil"
 	"strings"
 
 	"github.com/hqlyz/annie/myconfig"

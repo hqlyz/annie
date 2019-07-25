@@ -2,7 +2,6 @@ package vimeo
 
 import (
 	"encoding/json"
-	"io/ioutil"
 	"strconv"
 	"strings"
 
