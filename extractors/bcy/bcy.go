@@ -23,6 +23,7 @@ type bcyData struct {
 	} `json:"detail"`
 }
 
+// 目前失效，暂不处理
 // Extract is the main function for extracting data
 func Extract(url string, config myconfig.Config) ([]downloader.Data, error) {
 	var err error

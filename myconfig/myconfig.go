@@ -167,3 +167,6 @@ var SupportDomain = []string{"douyin", "iesdouyin", "bilibili", "bcy", "pixivisi
 
 // YoutubeSigBaseKey - key of youtube sig base js
 var YoutubeSigBaseKey = "youtube_sig_base_key"
+
+// DefaultThumbnail -
+var DefaultThumbnail = "https://www.videohandler.com/images/sri-default.jpg"

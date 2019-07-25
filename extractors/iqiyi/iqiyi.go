@@ -3,6 +3,7 @@ package iqiyi
 import (
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"math/rand"
 	"strconv"
 	"strings"
@@ -39,6 +40,10 @@ type iqiyi struct {
 
 type iqiyiURL struct {
 	L string `json:"l"`
+}
+
+type videoInfo struct {
+	Duration int `json:"duration"`
 }
 
 const iqiyiReferer = "https://www.iqiyi.com"
@@ -99,6 +104,7 @@ func Extract(url string, config myconfig.Config) ([]downloader.Data, error) {
 	if err != nil {
 		return downloader.EmptyList, err
 	}
+	ioutil.WriteFile("iqiyi.html", []byte(html), 0644)
 	tvid := utils.MatchOneOf(
 		url,
 		`#curid=(.+)_`,
@@ -130,7 +136,28 @@ func Extract(url string, config myconfig.Config) ([]downloader.Data, error) {
 		return downloader.EmptyList, err
 	}
 	title := strings.TrimSpace(doc.Find("h1>a").First().Text())
-	var sub string
+	var (
+		sub       string
+		thumbnail string
+		duration  int
+	)
+	thumbnailArr := utils.MatchOneOf(html, `property="og:image" content="(.+?)"`)
+	if thumbnailArr != nil {
+		thumbnail = thumbnailArr[1]
+	} else {
+		thumbnail = myconfig.DefaultThumbnail
+	}
+	videoInfoArr := utils.MatchOneOf(html, `:video-info='(.+?)'`)
+	var vinfo videoInfo
+	if videoInfoArr != nil {
+		err = json.Unmarshal([]byte(videoInfoArr[1]), &vinfo)
+		if err != nil {
+			return downloader.EmptyList, err
+		}
+		duration = vinfo.Duration
+	} else {
+		duration = 0
+	}
 	for _, k := range []string{"span", "em"} {
 		if sub != "" {
 			break
@@ -178,11 +205,13 @@ func Extract(url string, config myconfig.Config) ([]downloader.Data, error) {
 
 	return []downloader.Data{
 		{
-			Site:    "爱奇艺 iqiyi.com",
-			Title:   title,
-			Type:    "video",
-			Streams: streams,
-			URL:     url,
+			Site:      "爱奇艺 iqiyi.com",
+			Title:     title,
+			Type:      "video",
+			Streams:   streams,
+			URL:       url,
+			Thumbnail: thumbnail,
+			Length:    strconv.Itoa(duration),
 		},
 	}, nil
 }

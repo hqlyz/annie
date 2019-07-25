@@ -19,7 +19,7 @@ func Extract(url string, config myconfig.Config) ([]downloader.Data, error) {
 		fmt.Println(err)
 		return downloader.EmptyList, err
 	}
-	ioutil.WriteFile("fb.html", []byte(html), 0666)
+	ioutil.WriteFile("fb.html", []byte(html), 0644)
 	title := utils.MatchOneOf(html, `<title id="pageTitle">(.+)</title>`)[1]
 
 	streams := map[string]downloader.Stream{}

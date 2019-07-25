@@ -70,6 +70,7 @@ type OutputStream struct {
 	Type           string `json:"type"`
 	Size           int64  `json:"size"`
 	DownloadParams string `json:"params"`
+	QParams        string `json:"qparams"`
 }
 
 // EmptyList empty Data list

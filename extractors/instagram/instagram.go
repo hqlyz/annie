@@ -2,7 +2,6 @@ package instagram
 
 import (
 	"encoding/json"
-	"io/ioutil"
 	"strconv"
 
 	"github.com/hqlyz/annie/myconfig"
@@ -41,7 +40,7 @@ func Extract(url string, config myconfig.Config) ([]downloader.Data, error) {
 	if err != nil {
 		return downloader.EmptyList, err
 	}
-	ioutil.WriteFile("E:/instagram.html", []byte(html), 0644)
+	// ioutil.WriteFile("E:/instagram.html", []byte(html), 0644)
 	// get the title
 	doc, err := parser.GetDoc(html)
 	if err != nil {
