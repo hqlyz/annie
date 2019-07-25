@@ -157,7 +157,7 @@ func youtubeDownload(uri string, cacheJL *cache.Cache, config myconfig.Config) d
 		vid[1],
 	)
 	html, err := request.Get(videoURL, referer, nil, config)
-	ioutil.WriteFile("html.html", []byte(html), 0666)
+	// ioutil.WriteFile("html.html", []byte(html), 0666)
 	if err != nil {
 		return downloader.EmptyData(uri, err)
 	}
@@ -167,7 +167,7 @@ func youtubeDownload(uri string, cacheJL *cache.Cache, config myconfig.Config) d
 		return downloader.EmptyData(uri, errors.New("the video is not availabel"))
 	}
 	ytplayer := utils.MatchOneOf(html, `;ytplayer\.config\s*=\s*({.+?});`)[1]
-	ioutil.WriteFile("ytplayer.html", []byte(ytplayer), 0666)
+	// ioutil.WriteFile("ytplayer.html", []byte(ytplayer), 0666)
 	var youtube youtubeData
 	err = json.Unmarshal([]byte(ytplayer), &youtube)
 	if err != nil {

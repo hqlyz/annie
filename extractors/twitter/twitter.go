@@ -28,7 +28,7 @@ func Extract(uri string, config myconfig.Config) ([]downloader.Data, error) {
 	if err != nil {
 		return downloader.EmptyList, err
 	}
-	ioutil.WriteFile("E:/twitter.html", []byte(html), 0644)
+	// ioutil.WriteFile("E:/twitter.html", []byte(html), 0644)
 	usernameArr := utils.MatchOneOf(html, `property="og:title"\s+content="(.+)"`)
 	if len(usernameArr) < 2 {
 		return downloader.EmptyList, err

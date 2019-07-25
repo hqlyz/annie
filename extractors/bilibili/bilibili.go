@@ -319,7 +319,7 @@ func Extract(url string, config myconfig.Config) ([]downloader.Data, error) {
 	if err != nil {
 		return downloader.EmptyList, err
 	}
-	ioutil.WriteFile("bili.html", []byte(html), 0666)
+	// ioutil.WriteFile("bili.html", []byte(html), 0666)
 	if strings.Contains(url, "bangumi") {
 		// handle bangumi
 		return extractBangumi(url, html, config)

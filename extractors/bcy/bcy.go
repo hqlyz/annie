@@ -31,7 +31,7 @@ func Extract(url string, config myconfig.Config) ([]downloader.Data, error) {
 	if err != nil {
 		return downloader.EmptyList, err
 	}
-	ioutil.WriteFile("bcy.html", []byte(html), 0644)
+	// ioutil.WriteFile("bcy.html", []byte(html), 0644)
 	// parse json data
 	rep := strings.NewReplacer(`\"`, `"`, `\\`, `\`)
 	jsonString := rep.Replace(utils.MatchOneOf(html, `JSON.parse\("(.+?)"\);`)[1])

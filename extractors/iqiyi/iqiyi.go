@@ -104,7 +104,7 @@ func Extract(url string, config myconfig.Config) ([]downloader.Data, error) {
 	if err != nil {
 		return downloader.EmptyList, err
 	}
-	ioutil.WriteFile("iqiyi.html", []byte(html), 0644)
+	// ioutil.WriteFile("iqiyi.html", []byte(html), 0644)
 	tvid := utils.MatchOneOf(
 		url,
 		`#curid=(.+)_`,

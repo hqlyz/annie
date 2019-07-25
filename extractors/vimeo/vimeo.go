@@ -62,7 +62,7 @@ func Extract(url string, config myconfig.Config) ([]downloader.Data, error) {
 			return downloader.EmptyList, err
 		}
 	}
-	ioutil.WriteFile("E:/vimeo.html", []byte(html), 0644)
+	// ioutil.WriteFile("E:/vimeo.html", []byte(html), 0644)
 	jsonString := utils.MatchOneOf(html, `var \w+\s?=\s?({.+?});`)[1]
 	var vimeoData vimeo
 	json.Unmarshal([]byte(jsonString), &vimeoData)
