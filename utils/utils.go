@@ -18,7 +18,7 @@ import (
 )
 
 // MAXLENGTH Maximum length of file name
-const MAXLENGTH = 80
+const MAXLENGTH = 200
 
 // MatchOneOf match one of the patterns
 func MatchOneOf(text string, patterns ...string) []string {
