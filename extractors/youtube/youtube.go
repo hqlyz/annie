@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"net/url"
 	"strconv"
 	"strings"
@@ -46,6 +47,7 @@ type youtubeData struct {
 type videoDetails struct {
 	Thumbnail     thumbnail `json:"thumbnail"`
 	LengthSeconds string    `json:"lengthSeconds"`
+	Title         string    `json:"title"`
 }
 
 type youtubeThumbnail struct {
@@ -156,7 +158,7 @@ func youtubeDownload(uri string, cacheJL *cache.Cache, config myconfig.Config) d
 		vid[1],
 	)
 	html, err := request.Get(videoURL, referer, nil, config)
-	// ioutil.WriteFile("html.html", []byte(html), 0666)
+	ioutil.WriteFile("youtube.html", []byte(html), 0666)
 	if err != nil {
 		return downloader.EmptyData(uri, err)
 	}
@@ -172,13 +174,13 @@ func youtubeDownload(uri string, cacheJL *cache.Cache, config myconfig.Config) d
 	if err != nil {
 		return downloader.EmptyData(uri, err)
 	}
-	title := youtube.Args.Title
+	// title := youtube.Args.Title
 	var ytThumbnail youtubeThumbnail
 	err = json.Unmarshal([]byte(youtube.Args.PlayerResponse), &ytThumbnail)
 	if err != nil {
 		return downloader.EmptyData(uri, err)
 	}
-
+	title := ytThumbnail.VideoDetails.Title
 	streams, err := extractVideoURLS(youtube, uri, cacheJL, config)
 	if err != nil {
 		return downloader.EmptyData(uri, err)
