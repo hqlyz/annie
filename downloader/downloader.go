@@ -116,8 +116,8 @@ func writeFile(url string, file *os.File, headers map[string]string, bar *pb.Pro
 	}
 	for i := 0; i < goroutineNum; i++ {
 		tempFile, err := os.Open(file.Name() + strconv.Itoa(i))
-		fileInfo, _ := tempFile.Stat()
-		fmt.Printf("file size: %d\n", fileInfo.Size())
+		// fileInfo, _ := tempFile.Stat()
+		// fmt.Printf("file size: %d\n", fileInfo.Size())
 		if err != nil {
 			return 0, err
 		}
