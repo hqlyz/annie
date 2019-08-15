@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"net/url"
 	"strconv"
 	"strings"
@@ -158,9 +157,12 @@ func youtubeDownload(uri string, cacheJL *cache.Cache, config myconfig.Config) d
 		vid[1],
 	)
 	html, err := request.Get(videoURL, referer, nil, config)
-	ioutil.WriteFile("youtube.html", []byte(html), 0666)
+	// ioutil.WriteFile("youtube.html", []byte(html), 0666)
 	if err != nil {
 		return downloader.EmptyData(uri, err)
+	}
+	if strings.Contains(html, "Licensed to YouTube by") {
+		return downloader.EmptyData(uri, errors.New("Can't download copyrighted video"))
 	}
 	ytplayerArr := utils.MatchOneOf(html, `;ytplayer\.config\s*=\s*({.+?});`)
 	fmt.Println(len(ytplayerArr))
