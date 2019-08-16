@@ -76,13 +76,13 @@ func writeFile(destURL string, file *os.File, headers map[string]string, bar *pb
 	} else if length <= int64(100*mBytes) {
 		goroutineNum = 10
 	} else if length <= int64(200*mBytes) {
-		goroutineNum = 12
+		goroutineNum = 15
 	} else if length <= int64(300*mBytes) {
-		goroutineNum = 14
+		goroutineNum = 20
 	} else if length <= int64(400*mBytes) {
-		goroutineNum = 16
+		goroutineNum = 25
 	} else {
-		goroutineNum = 18
+		goroutineNum = 30
 	}
 	fragmentSize := int64(math.Ceil(float64(length) / float64(goroutineNum)))
 	wg.Add(goroutineNum)
