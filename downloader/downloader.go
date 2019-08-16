@@ -1,25 +1,26 @@
 package downloader
 
 import (
-	"bufio"
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"math"
 	"net/http"
+	"net/url"
 	"os"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
 
-	"github.com/patrickmn/go-cache"
-
+	"github.com/cavaliercoder/grab"
 	"github.com/cheggaaa/pb"
 	"github.com/hqlyz/annie/myconfig"
 	"github.com/hqlyz/annie/request"
 	"github.com/hqlyz/annie/utils"
+	"github.com/patrickmn/go-cache"
 )
 
 var wg = sync.WaitGroup{}
@@ -56,13 +57,13 @@ func Caption(url, refer, fileName, ext string, config myconfig.Config) error {
 	return nil
 }
 
-func writeFile(url string, file *os.File, headers map[string]string, bar *pb.ProgressBar, cacheJL *cache.Cache, token string, config myconfig.Config) (int64, error) {
+func writeFile(destURL string, file *os.File, headers map[string]string, bar *pb.ProgressBar, cacheJL *cache.Cache, token string, config myconfig.Config) (int64, error) {
 	var (
 		res *http.Response
 		err error
 	)
 	// cacheJL.Set(token+"d", int64(0), time.Minute*10)
-	res, err = request.Request("GET", url, nil, headers, config)
+	res, err = request.Request("HEAD", destURL, nil, headers, config)
 	if err != nil {
 		return 0, err
 	}
@@ -75,17 +76,20 @@ func writeFile(url string, file *os.File, headers map[string]string, bar *pb.Pro
 	} else if length <= int64(100*mBytes) {
 		goroutineNum = 10
 	} else if length <= int64(200*mBytes) {
-		goroutineNum = 20
+		goroutineNum = 12
 	} else if length <= int64(300*mBytes) {
-		goroutineNum = 30
+		goroutineNum = 14
 	} else if length <= int64(400*mBytes) {
-		goroutineNum = 40
+		goroutineNum = 16
 	} else {
-		goroutineNum = 50
+		goroutineNum = 18
 	}
 	fragmentSize := int64(math.Ceil(float64(length) / float64(goroutineNum)))
 	wg.Add(goroutineNum)
-	var fNum int64
+	var (
+		fNum int64
+		errs []error
+	)
 	for i := 0; i < goroutineNum; i++ {
 		fileName := file.Name() + strconv.Itoa(i)
 		if i == (goroutineNum - 1) {
@@ -100,24 +104,24 @@ func writeFile(url string, file *os.File, headers map[string]string, bar *pb.Pro
 			header[k] = v
 		}
 		header["Range"] = ranges
-		go fragmentDownload(url, header, nil, fileName, cacheJL, token, config)
+		// go fragmentDownload(destURL, fileName, header, cacheJL, token, config, errs)
+		go func(destURL string, fileName string, header map[string]string, cacheJL *cache.Cache, token string, config myconfig.Config) {
+			err := fragmentDownload(destURL, fileName, header, cacheJL, token, config)
+			if err != nil {
+				errs = append(errs, err)
+			}
+		}(destURL, fileName, header, cacheJL, token, config)
 	}
 	wg.Wait()
-	// num, found := cacheJL.Get(token)
-	// if !found {
-	// 	num = -1
-	// }
-	// fmt.Printf("Download: %d\n", num)
 
 	// merge files
-	if err != nil {
-		fmt.Println(err.Error())
-		return 0, err
+	fmt.Printf("error count: %d\n", len(errs))
+	if len(errs) > 0 {
+		fmt.Println(errs[0].Error())
+		return 0, errs[0]
 	}
 	for i := 0; i < goroutineNum; i++ {
 		tempFile, err := os.Open(file.Name() + strconv.Itoa(i))
-		// fileInfo, _ := tempFile.Stat()
-		// fmt.Printf("file size: %d\n", fileInfo.Size())
 		if err != nil {
 			return 0, err
 		}
@@ -138,37 +142,60 @@ func writeFile(url string, file *os.File, headers map[string]string, bar *pb.Pro
 	return length, nil
 }
 
-func fragmentDownload(destURL string, headers map[string]string, bar *pb.ProgressBar, fileName string, cacheJL *cache.Cache, token string, config myconfig.Config) {
-	var (
-		res *http.Response
-		err error
-	)
-	res, err = request.Request("GET", destURL, nil, headers, config)
-	if err != nil {
-		return
-	}
-	defer res.Body.Close()
-	file, err := os.Create(fileName)
-	if err != nil {
-		return
-	}
-	buffer := make([]byte, 4*1024)
-	myReader := bufio.NewReader(res.Body)
-	myWriter := bufio.NewWriter(file)
-	var (
-		n int
-	)
-	for n, err = 0, error(nil); err == nil && err != io.EOF; {
-		n, err = myReader.Read(buffer)
-		myWriter.Write(buffer[:n])
-		cacheJL.Increment(token+"d", int64(n))
-	}
-	myWriter.Flush()
-	file.Close()
-	if err != nil && err != io.EOF {
-		return
-	}
+func fragmentDownload(destURL string, fileName string, headers map[string]string, cacheJL *cache.Cache, token string, config myconfig.Config) error {
 	defer wg.Done()
+	client := grab.NewClient()
+	if config.Proxy != "" {
+		httpProxy, err := url.Parse(config.Proxy)
+		if err != nil {
+			return err
+		}
+		client.HTTPClient = &http.Client{
+			Transport: &http.Transport{
+				Proxy: http.ProxyURL(httpProxy),
+			},
+		}
+	}
+	req, _ := grab.NewRequest(fileName, destURL)
+	for k, v := range headers {
+		req.HTTPRequest.Header.Set(k, v)
+	}
+
+	fmt.Printf("Start downloading %s\n", fileName)
+	resp := client.Do(req)
+	fmt.Printf("The file size: %d\n", resp.Size())
+	t := time.NewTicker(500 * time.Millisecond)
+	timeout := time.After(time.Minute * 10)
+	defer t.Stop()
+	var (
+		preBytesComplete = int64(0)
+		bytesComplete    = int64(0)
+	)
+Loop:
+	for {
+		select {
+		case <-t.C:
+			bytesComplete = resp.BytesComplete()
+			cacheJL.Increment(token+"d", bytesComplete-preBytesComplete)
+			preBytesComplete = bytesComplete
+		case <-resp.Done:
+			if resp.BytesComplete()-preBytesComplete > 0 {
+				cacheJL.Increment(token+"d", resp.BytesComplete()-preBytesComplete)
+			}
+			break Loop
+		case <-timeout:
+			fmt.Println("Download timeout")
+			return errors.New("Download timeout")
+		}
+
+	}
+
+	if err := resp.Err(); err != nil {
+		fmt.Printf("Download failed: %v\n", err)
+		return err
+	}
+	fmt.Println("Download finished")
+	return nil
 }
 
 /* original version */
@@ -382,9 +409,10 @@ func Download(v Data, refer string, chunkSizeMB int, cacheJL *cache.Cache, token
 	}
 
 	cacheJL.Set(token+"c", convertCacheValue, time.Minute*60)
+	cacheJL.Set(token+"d", int64(0), time.Minute*60)
 	if mergedFileExists {
 		fmt.Printf("%s: file already exists, skipping\n", mergedFilePath)
-		cacheJL.Set(token+"d", data.Size, time.Minute*10)
+		cacheJL.Set(token+"d", data.Size, time.Minute*60)
 		return nil
 	}
 	bar := progressBar(data.Size)
