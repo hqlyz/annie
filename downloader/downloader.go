@@ -76,13 +76,13 @@ func writeFile(destURL string, file *os.File, headers map[string]string, bar *pb
 	} else if length <= int64(100*mBytes) {
 		goroutineNum = 10
 	} else if length <= int64(200*mBytes) {
-		goroutineNum = 15
+		goroutineNum = 18
 	} else if length <= int64(300*mBytes) {
-		goroutineNum = 20
+		goroutineNum = 26
 	} else if length <= int64(400*mBytes) {
-		goroutineNum = 25
+		goroutineNum = 34
 	} else {
-		goroutineNum = 30
+		goroutineNum = 42
 	}
 	fragmentSize := int64(math.Ceil(float64(length) / float64(goroutineNum)))
 	wg.Add(goroutineNum)
@@ -104,7 +104,6 @@ func writeFile(destURL string, file *os.File, headers map[string]string, bar *pb
 			header[k] = v
 		}
 		header["Range"] = ranges
-		// go fragmentDownload(destURL, fileName, header, cacheJL, token, config, errs)
 		go func(destURL string, fileName string, header map[string]string, cacheJL *cache.Cache, token string, config myconfig.Config) {
 			err := fragmentDownload(destURL, fileName, header, cacheJL, token, config)
 			if err != nil {
@@ -161,9 +160,12 @@ func fragmentDownload(destURL string, fileName string, headers map[string]string
 		req.HTTPRequest.Header.Set(k, v)
 	}
 
-	fmt.Printf("Start downloading %s\n", fileName)
 	resp := client.Do(req)
-	fmt.Printf("The file size: %d\n", resp.Size())
+	fi, err := os.Stat(fileName)
+	// if file already exsits, skip downloading
+	if err == nil && fi.Size() == resp.Size() {
+		return nil
+	}
 	t := time.NewTicker(500 * time.Millisecond)
 	timeout := time.After(time.Minute * 10)
 	defer t.Stop()
@@ -194,7 +196,9 @@ Loop:
 		fmt.Printf("Download failed: %v\n", err)
 		return err
 	}
-	fmt.Println("Download finished")
+	// fmt.Printf("Download finished, the size is: %d\tthe file is: %s\n", resp.BytesComplete(), fileName)
+	// dSize, _ := cacheJL.Get(token + "d")
+	// fmt.Printf("downloaded size: %d\n", dSize.(int64))
 	return nil
 }
 

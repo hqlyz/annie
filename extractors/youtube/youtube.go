@@ -165,7 +165,7 @@ func youtubeDownload(uri string, cacheJL *cache.Cache, config myconfig.Config) d
 		return downloader.EmptyData(uri, errors.New("Can't download copyrighted video"))
 	}
 	ytplayerArr := utils.MatchOneOf(html, `;ytplayer\.config\s*=\s*({.+?});`)
-	fmt.Println(len(ytplayerArr))
+	// fmt.Println(len(ytplayerArr))
 	if len(ytplayerArr) == 0 {
 		return downloader.EmptyData(uri, errors.New("the video is not availabel"))
 	}
