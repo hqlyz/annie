@@ -160,10 +160,18 @@ func fragmentDownload(destURL string, fileName string, headers map[string]string
 		req.HTTPRequest.Header.Set(k, v)
 	}
 
-	resp := client.Do(req)
 	fi, err := os.Stat(fileName)
+	resp := client.Do(req)
+	if err != nil {
+		fmt.Printf("fi.Size(): 0\n")
+	} else {
+		fmt.Printf("fi.Size(): %d\n", fi.Size())
+	}
+	fmt.Printf("resp.Size(): %d\n", resp.Size())
 	// if file already exsits, skip downloading
 	if err == nil && fi.Size() == resp.Size() {
+		fmt.Println("the file already exsits")
+		resp.Cancel()
 		return nil
 	}
 	t := time.NewTicker(500 * time.Millisecond)
