@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"math"
 	"net/http"
 	"net/url"
@@ -478,6 +479,12 @@ func Download(v Data, refer string, chunkSizeMB int, cacheJL *cache.Cache, token
 	}
 	if err != nil {
 		return err
+	}
+
+	// try to download video caption
+	if v.CaptionURL != "" {
+		captionHTML, _ := request.Get(v.CaptionURL, "", nil, config)
+		ioutil.WriteFile("caption_html.html", []byte(captionHTML), 0644)
 	}
 	return nil
 }

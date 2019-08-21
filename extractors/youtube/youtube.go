@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"net/url"
 	"strconv"
 	"strings"
@@ -49,8 +50,21 @@ type videoDetails struct {
 	Title         string    `json:"title"`
 }
 
-type youtubeThumbnail struct {
+type playerResponseData struct {
 	VideoDetails videoDetails `json:"videoDetails"`
+	Captions     captions     `json:"captions"`
+}
+
+type captions struct {
+	PlayerCaptionsTracklistRenderer playerCaptionsTracklistRenderer `json:"playerCaptionsTracklistRenderer"`
+}
+
+type playerCaptionsTracklistRenderer struct {
+	CaptionTracks []captionTracksItem `json:"captionTracks"`
+}
+
+type captionTracksItem struct {
+	BaseURL string `json:"baseUrl"`
 }
 
 const referer = "https://www.youtube.com"
@@ -157,7 +171,7 @@ func youtubeDownload(uri string, cacheJL *cache.Cache, config myconfig.Config) d
 		vid[1],
 	)
 	html, err := request.Get(videoURL, referer, nil, config)
-	// ioutil.WriteFile("youtube.html", []byte(html), 0666)
+	ioutil.WriteFile("youtube.html", []byte(html), 0666)
 	if err != nil {
 		return downloader.EmptyData(uri, err)
 	}
@@ -165,7 +179,6 @@ func youtubeDownload(uri string, cacheJL *cache.Cache, config myconfig.Config) d
 		return downloader.EmptyData(uri, errors.New("Can't download copyrighted video"))
 	}
 	ytplayerArr := utils.MatchOneOf(html, `;ytplayer\.config\s*=\s*({.+?});`)
-	// fmt.Println(len(ytplayerArr))
 	if len(ytplayerArr) == 0 {
 		return downloader.EmptyData(uri, errors.New("the video is not availabel"))
 	}
@@ -176,28 +189,26 @@ func youtubeDownload(uri string, cacheJL *cache.Cache, config myconfig.Config) d
 	if err != nil {
 		return downloader.EmptyData(uri, err)
 	}
-	// title := youtube.Args.Title
-	var ytThumbnail youtubeThumbnail
-	err = json.Unmarshal([]byte(youtube.Args.PlayerResponse), &ytThumbnail)
+	var playerResponseData playerResponseData
+	err = json.Unmarshal([]byte(youtube.Args.PlayerResponse), &playerResponseData)
 	if err != nil {
 		return downloader.EmptyData(uri, err)
 	}
-	title := ytThumbnail.VideoDetails.Title
+	title := playerResponseData.VideoDetails.Title
 	streams, err := extractVideoURLS(youtube, uri, cacheJL, config)
 	if err != nil {
 		return downloader.EmptyData(uri, err)
 	}
 
 	return downloader.Data{
-		Site:      "YouTube youtube.com",
-		Title:     title,
-		Type:      "video",
-		Streams:   streams,
-		URL:       uri,
-		Thumbnail: ytThumbnail.VideoDetails.Thumbnail.Thumbnails[1].URL,
-		// ThumbnailWidth:  ytThumbnail.VideoDetails.Thumbnail.Thumbnails[1].Width,
-		// ThumbnailHeight: ytThumbnail.VideoDetails.Thumbnail.Thumbnails[1].Height,
-		Length: ytThumbnail.VideoDetails.LengthSeconds,
+		Site:       "YouTube youtube.com",
+		Title:      title,
+		Type:       "video",
+		Streams:    streams,
+		URL:        uri,
+		Thumbnail:  playerResponseData.VideoDetails.Thumbnail.Thumbnails[1].URL,
+		Length:     playerResponseData.VideoDetails.LengthSeconds,
+		CaptionURL: playerResponseData.Captions.PlayerCaptionsTracklistRenderer.CaptionTracks[0].BaseURL,
 	}
 }
 

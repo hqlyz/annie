@@ -51,6 +51,7 @@ type Data struct {
 	ThumbnailWidth      int    `json:"twidth"`
 	ThumbnailHeight     int    `json:"theight"`
 	Length              string `json:"length"`
+	CaptionURL          string `json:"caption_url"`
 }
 
 // OutputData for api
