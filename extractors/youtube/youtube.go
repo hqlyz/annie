@@ -180,6 +180,22 @@ func youtubeDownload(uri string, cacheJL *cache.Cache, config myconfig.Config) d
 	}
 	ytplayerArr := utils.MatchOneOf(html, `;ytplayer\.config\s*=\s*({.+?});`)
 	if len(ytplayerArr) == 0 {
+		html2, err := request.Get(fmt.Sprintf("https://www.youtube.com/get_video_info?video_id=%s&eurl=https%3A%2F%2Fy", vid[1]), referer, nil, config)
+		if err != nil {
+			return downloader.EmptyData(uri, err)
+		}
+		ioutil.WriteFile("youtube2.html", []byte(html2), 0644)
+		videoInfo, err := url.ParseQuery(html2)
+		if err != nil {
+			return downloader.EmptyData(uri, err)
+		}
+		if videoInfo.Get("status") == "ok" {
+			playerResponseStr, err := url.QueryUnescape(videoInfo.Get("player_response"))
+			if err != nil {
+				return downloader.EmptyData(uri, err)
+			}
+			ioutil.WriteFile("player_response.json", []byte(playerResponseStr), 0644)
+		}
 		return downloader.EmptyData(uri, errors.New("the video is not availabel"))
 	}
 	ytplayer := utils.MatchOneOf(html, `;ytplayer\.config\s*=\s*({.+?});`)[1]
