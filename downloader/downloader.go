@@ -3,6 +3,7 @@ package downloader
 import (
 	"bytes"
 	"encoding/json"
+	"encoding/xml"
 	"errors"
 	"fmt"
 	"io"
@@ -485,10 +486,50 @@ func Download(v Data, refer string, chunkSizeMB int, cacheJL *cache.Cache, token
 	if v.CaptionURL != "" {
 		captionHTML, _ := request.Get(v.CaptionURL, "", nil, config)
 		ioutil.WriteFile("caption_html.html", []byte(captionHTML), 0644)
+		srtPath, err := utils.FilePath(title, "srt", false, config)
+		if err == nil {
+			downloadSrt(captionHTML, srtPath)
+		}
 	}
 	return nil
 }
 
 func splitVideoQuality(quality string) string {
 	return strings.Split(quality, " ")[0]
+}
+
+func downloadSrt(str string, name string) {
+	var caption Transcript
+	err := xml.Unmarshal([]byte(str), &caption)
+	if err != nil {
+		return
+	}
+	outputStr := ""
+	for k, v := range caption.Texts {
+		tempStr := fmt.Sprintf("%d\n", k+1)
+		start, err := strconv.ParseFloat(v.Start.Value, 64)
+		if err != nil {
+			return
+		}
+		dur, err := strconv.ParseFloat(v.Duration.Value, 64)
+		if err != nil {
+			return
+		}
+		end := start + dur
+		m, _ := divMod(int(start), 60)
+		h, m := divMod(m, 60)
+		startStr := strings.Replace(fmt.Sprintf("%02d:%02d:%06.3f", h, m, (start-float64(h)*3600-float64(m)*60)), ".", ",", -1)
+		m, _ = divMod(int(end), 60)
+		h, m = divMod(m, 60)
+		endStr := strings.Replace(fmt.Sprintf("%02d:%02d:%06.3f", h, m, (end-float64(h)*3600-float64(m)*60)), ".", ",", -1)
+		tempStr += fmt.Sprintf("%s --> %s\n%s\n\n", startStr, endStr, v.Content)
+		outputStr += tempStr
+	}
+	ioutil.WriteFile(name, []byte(outputStr), 0644)
+}
+
+func divMod(x int, y int) (int, int) {
+	div := x / y
+	mod := x % y
+	return div, mod
 }

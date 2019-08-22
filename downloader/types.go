@@ -1,6 +1,7 @@
 package downloader
 
 import (
+	"encoding/xml"
 	"fmt"
 	"sort"
 
@@ -73,6 +74,24 @@ type OutputStream struct {
 	DownloadParams string `json:"params"`
 	QParams        string `json:"qparams"`
 }
+
+/*******************/
+// srt struct
+// Transcript -
+type Transcript struct {
+	XMLName xml.Name `xml:"transcript"`
+	Texts   []Text   `xml:"text"`
+}
+
+// Text -
+type Text struct {
+	XMLName  xml.Name `xml:"text"`
+	Start    xml.Attr `xml:"start,attr"`
+	Duration xml.Attr `xml:"dur,attr"`
+	Content  string   `xml:",innerxml"`
+}
+
+/*******************/
 
 // EmptyList empty Data list
 var EmptyList = make([]Data, 0)
