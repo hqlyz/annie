@@ -67,6 +67,26 @@ type captionTracksItem struct {
 	BaseURL string `json:"baseUrl"`
 }
 
+// another parse method type
+type anotherPlayerResponseData struct {
+	VideoDetails videoDetails `json:"videoDetails"`
+	Captions captions `json:"captions"`
+	StreamData streamData `json:"streamData"`
+}
+
+type streamData struct {
+	AdaptiveFormats []adaptiveFormatsItem `json:"adaptiveFormats"`
+}
+
+type adaptiveFormatsItem struct {
+	Itag string `json:"itag"`
+	URL string `json:"url"`
+	MimeType string `json:"mimeType"`
+	ContentLength string `json:"contentLength"`
+	Quality string `json:"qualityLabel"`
+	DurationMs string `json:"approxDurationMs"`
+}
+
 const referer = "https://www.youtube.com"
 
 // var tokensCache = make(map[string][]string)
@@ -180,26 +200,14 @@ func youtubeDownload(uri string, cacheJL *cache.Cache, config myconfig.Config) d
 	}
 	ytplayerArr := utils.MatchOneOf(html, `;ytplayer\.config\s*=\s*({.+?});`)
 	if len(ytplayerArr) == 0 {
-		html2, err := request.Get(fmt.Sprintf("https://www.youtube.com/get_video_info?video_id=%s&eurl=https%3A%2F%2Fy", vid[1]), referer, nil, config)
+		// if general method failed, try another method
+		anotherData, err := anotherParseMethod(vid[1], referer, config)
 		if err != nil {
-			return downloader.EmptyData(uri, err)
+			return downloader.EmptyData(uri, errors.New("the video is not available"))
 		}
-		ioutil.WriteFile("youtube2.html", []byte(html2), 0644)
-		videoInfo, err := url.ParseQuery(html2)
-		if err != nil {
-			return downloader.EmptyData(uri, err)
-		}
-		if videoInfo.Get("status") == "ok" {
-			playerResponseStr, err := url.QueryUnescape(videoInfo.Get("player_response"))
-			if err != nil {
-				return downloader.EmptyData(uri, err)
-			}
-			ioutil.WriteFile("player_response.json", []byte(playerResponseStr), 0644)
-		}
-		return downloader.EmptyData(uri, errors.New("the video is not availabel"))
+		return anotherData
 	}
 	ytplayer := utils.MatchOneOf(html, `;ytplayer\.config\s*=\s*({.+?});`)[1]
-	// ioutil.WriteFile("ytplayer.html", []byte(ytplayer), 0666)
 	var youtube youtubeData
 	err = json.Unmarshal([]byte(ytplayer), &youtube)
 	if err != nil {
@@ -215,6 +223,10 @@ func youtubeDownload(uri string, cacheJL *cache.Cache, config myconfig.Config) d
 	if err != nil {
 		return downloader.EmptyData(uri, err)
 	}
+	captionURL := ""
+	if len(playerResponseData.Captions.PlayerCaptionsTracklistRenderer.CaptionTracks) > 0 {
+		captionURL = playerResponseData.Captions.PlayerCaptionsTracklistRenderer.CaptionTracks[0].BaseURL
+	}
 
 	return downloader.Data{
 		Site:       "YouTube youtube.com",
@@ -224,7 +236,7 @@ func youtubeDownload(uri string, cacheJL *cache.Cache, config myconfig.Config) d
 		URL:        uri,
 		Thumbnail:  playerResponseData.VideoDetails.Thumbnail.Thumbnails[1].URL,
 		Length:     playerResponseData.VideoDetails.LengthSeconds,
-		CaptionURL: playerResponseData.Captions.PlayerCaptionsTracklistRenderer.CaptionTracks[0].BaseURL,
+		CaptionURL: captionURL,
 	}
 }
 
@@ -331,4 +343,37 @@ func extractVideoURLS(data youtubeData, referer string, cacheJL *cache.Cache, co
 		}
 	}
 	return streams, nil
+}
+
+func anotherParseMethod(vid string, referer string, config myconfig.Config) (downloader.Data, error) {
+	fmt.Println("try another method to parse youtube video")
+	html2, err := request.Get(fmt.Sprintf("https://www.youtube.com/get_video_info?video_id=%s&eurl=https%3A%2F%2Fy", vid), referer, nil, config)
+	if err != nil {
+		return downloader.Data{}, err
+	}
+	ioutil.WriteFile("youtube2.html", []byte(html2), 0644)
+	videoInfo, err := url.ParseQuery(html2)
+	if err != nil {
+		return downloader.Data{}, err
+	}
+	if videoInfo.Get("status") == "ok" {
+		playerResponseStr, err := url.QueryUnescape(videoInfo.Get("player_response"))
+		if err != nil {
+			return downloader.Data{}, err
+		}
+		ioutil.WriteFile("player_response.json", []byte(playerResponseStr), 0644)
+		var anotherPlayerResponse anotherPlayerResponseData
+		err = json.Unmarshal([]byte(playerResponseStr), &anotherPlayerResponse)
+		if err != nil {
+			return downloader.Data{}, err
+		}
+		// streams := make(map[string]downloader.Stream)
+		outputBytes, err := json.Marshal(anotherPlayerResponse)
+		if err != nil {
+			fmt.Println(err.Error())
+			return downloader.Data{}, err
+		}
+		fmt.Println(string(outputBytes))
+	}
+	return downloader.Data{}, errors.New("not end")
 }
