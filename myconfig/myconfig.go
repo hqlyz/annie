@@ -117,6 +117,8 @@ type Config struct {
 	RetryTimes int
 	// YouTubeStream2 will use data in `url_encoded_fmt_stream_map`
 	YouTubeStream2 bool
+	// Supervisor mode
+	SupervisorMode bool
 }
 
 // New config instance
@@ -150,6 +152,7 @@ func New() Config {
 		YoukuCkey:      "7B19C0AB12633B22E7FE81271162026020570708D6CC189E4924503C49D243A0DE6CD84A766832C2C99898FC5ED31F3709BB3CDD82C96492E721BDD381735026",
 		YoukuPassword:  "",
 		YouTubeStream2: false,
+		SupervisorMode: false,
 	}
 }
 

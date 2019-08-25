@@ -14,7 +14,7 @@ import (
 	"github.com/hqlyz/annie/request"
 )
 
-var youtubeSigKey = "youtubesigkey"
+const youtubeSigKey = "youtubesigkey"
 
 func getDownloadURL(stream url.Values, htmlPlayerFile string, cacheJL *cache.Cache, config myconfig.Config) (string, error) {
 	var signature string

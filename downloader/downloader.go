@@ -65,8 +65,10 @@ func writeFile(destURL string, file *os.File, headers map[string]string, bar *pb
 		err error
 	)
 	// cacheJL.Set(token+"d", int64(0), time.Minute*10)
-	res, err = request.Request("HEAD", destURL, nil, headers, config)
+	res, err = request.Request(http.MethodGet, destURL, nil, headers, config)
+	// fmt.Println("lalala")
 	if err != nil {
+		fmt.Println(err.Error())
 		return 0, err
 	}
 	defer res.Body.Close()
@@ -488,7 +490,7 @@ func Download(v Data, refer string, chunkSizeMB int, cacheJL *cache.Cache, token
 		ioutil.WriteFile("caption_html.html", []byte(captionHTML), 0644)
 		srtPath, err := utils.FilePath(title, "srt", false, config)
 		if err == nil {
-			downloadSrt(captionHTML, srtPath)
+			downloadSrt(captionHTML, srtPath, cacheJL, token)
 		}
 	}
 	return nil
@@ -498,7 +500,12 @@ func splitVideoQuality(quality string) string {
 	return strings.Split(quality, " ")[0]
 }
 
-func downloadSrt(str string, name string) {
+func downloadSrt(str string, name string, cacheJL *cache.Cache, token string) {
+	if _, err := os.Stat(name); err == nil {
+		// file exists
+		cacheJL.Set(token+"cs", name, time.Hour*1)
+		return
+	}
 	var caption Transcript
 	err := xml.Unmarshal([]byte(str), &caption)
 	if err != nil {
@@ -526,6 +533,7 @@ func downloadSrt(str string, name string) {
 		outputStr += tempStr
 	}
 	ioutil.WriteFile(name, []byte(outputStr), 0644)
+	cacheJL.Set(token+"cs", name, time.Hour*1)
 }
 
 func divMod(x int, y int) (int, int) {

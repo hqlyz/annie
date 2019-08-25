@@ -8,6 +8,7 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/patrickmn/go-cache"
 
@@ -70,8 +71,8 @@ type captionTracksItem struct {
 // another parse method type
 type anotherPlayerResponseData struct {
 	VideoDetails videoDetails `json:"videoDetails"`
-	Captions captions `json:"captions"`
-	StreamData streamData `json:"streamData"`
+	Captions     captions     `json:"captions"`
+	StreamData   streamData   `json:"streamingData"`
 }
 
 type streamData struct {
@@ -79,15 +80,16 @@ type streamData struct {
 }
 
 type adaptiveFormatsItem struct {
-	Itag string `json:"itag"`
-	URL string `json:"url"`
-	MimeType string `json:"mimeType"`
+	Itag          int    `json:"itag"`
+	URL           string `json:"url"`
+	MimeType      string `json:"mimeType"`
 	ContentLength string `json:"contentLength"`
-	Quality string `json:"qualityLabel"`
-	DurationMs string `json:"approxDurationMs"`
+	Quality       string `json:"qualityLabel"`
 }
 
 const referer = "https://www.youtube.com"
+const generalBaseJSURL = "https://www.youtube.com/yts/jsbin/player_ias-vfle9vlRm/en_US/base.js"
+const generalBaseJSURLKey = "ytgbjsurlkey"
 
 // var tokensCache = make(map[string][]string)
 
@@ -195,13 +197,13 @@ func youtubeDownload(uri string, cacheJL *cache.Cache, config myconfig.Config) d
 	if err != nil {
 		return downloader.EmptyData(uri, err)
 	}
-	if strings.Contains(html, "Licensed to YouTube by") {
+	if strings.Contains(html, "Licensed to YouTube by") && !config.SupervisorMode {
 		return downloader.EmptyData(uri, errors.New("Can't download copyrighted video"))
 	}
 	ytplayerArr := utils.MatchOneOf(html, `;ytplayer\.config\s*=\s*({.+?});`)
 	if len(ytplayerArr) == 0 {
 		// if general method failed, try another method
-		anotherData, err := anotherParseMethod(vid[1], referer, config)
+		anotherData, err := anotherParseMethod(vid[1], referer, config, cacheJL, uri)
 		if err != nil {
 			return downloader.EmptyData(uri, errors.New("the video is not available"))
 		}
@@ -213,6 +215,7 @@ func youtubeDownload(uri string, cacheJL *cache.Cache, config myconfig.Config) d
 	if err != nil {
 		return downloader.EmptyData(uri, err)
 	}
+	cacheJL.Set(generalBaseJSURLKey, youtube.Assets.JS, time.Hour*24)
 	var playerResponseData playerResponseData
 	err = json.Unmarshal([]byte(youtube.Args.PlayerResponse), &playerResponseData)
 	if err != nil {
@@ -345,9 +348,11 @@ func extractVideoURLS(data youtubeData, referer string, cacheJL *cache.Cache, co
 	return streams, nil
 }
 
-func anotherParseMethod(vid string, referer string, config myconfig.Config) (downloader.Data, error) {
+func anotherParseMethod(vid string, referer string, config myconfig.Config, cacheJL *cache.Cache, uri string) (downloader.Data, error) {
 	fmt.Println("try another method to parse youtube video")
-	html2, err := request.Get(fmt.Sprintf("https://www.youtube.com/get_video_info?video_id=%s&eurl=https%3A%2F%2Fy", vid), referer, nil, config)
+	destURL := fmt.Sprintf("https://www.youtube.com/get_video_info?video_id=%s&eurl=https%%3A%%2F%%2Fy", vid)
+	html2, err := request.Get(destURL, referer, nil, config)
+	// fmt.Println(destURL)
 	if err != nil {
 		return downloader.Data{}, err
 	}
@@ -365,15 +370,106 @@ func anotherParseMethod(vid string, referer string, config myconfig.Config) (dow
 		var anotherPlayerResponse anotherPlayerResponseData
 		err = json.Unmarshal([]byte(playerResponseStr), &anotherPlayerResponse)
 		if err != nil {
-			return downloader.Data{}, err
-		}
-		// streams := make(map[string]downloader.Stream)
-		outputBytes, err := json.Marshal(anotherPlayerResponse)
-		if err != nil {
 			fmt.Println(err.Error())
 			return downloader.Data{}, err
 		}
-		fmt.Println(string(outputBytes))
+
+		streams := make(map[string]downloader.Stream)
+		var ext string
+		var audio downloader.URL
+		var audioWebm downloader.URL
+		var audioFound bool
+		var audioWebmFound bool
+
+		for _, s := range anotherPlayerResponse.StreamData.AdaptiveFormats {
+			stream, err := url.ParseQuery(s.URL)
+			if err != nil {
+				return downloader.Data{}, err
+			}
+			stream.Set("url", s.URL)
+			itag := strconv.Itoa(s.Itag)
+			streamType := s.MimeType
+			isAudio := strings.HasPrefix(streamType, "audio")
+
+			quality := s.Quality
+			if quality != "" {
+				quality = fmt.Sprintf("%s %s", quality, streamType)
+			} else {
+				quality = streamType
+			}
+			ext = utils.MatchOneOf(streamType, `(\w+)/(\w+);`)[2]
+			// realURL, err := getDownloadURL(stream, getBaseJS(cacheJL), cacheJL, config)
+			// if err != nil {
+			// 	return downloader.Data{}, err
+			// }
+			realURL := s.URL
+			sizeStr := s.ContentLength
+			size := int64(0)
+			if sizeStr != "" {
+				size, err = strconv.ParseInt(sizeStr, 10, 64)
+				if err != nil {
+					size = int64(0)
+				}
+			}
+			urlData := downloader.URL{
+				URL:  realURL,
+				Size: size,
+				Ext:  ext,
+			}
+			if isAudio {
+				// Audio data for merging with video
+				if strings.Contains(quality, "webm") && !audioWebmFound {
+					audioWebm = urlData
+					audioWebmFound = true
+				} else if !strings.Contains(quality, "webm") && !audioFound {
+					audio = urlData
+					audioFound = true
+				}
+			}
+			streams[itag] = downloader.Stream{
+				URLs:    []downloader.URL{urlData},
+				Size:    size,
+				Quality: quality,
+			}
+		}
+
+		for itag, f := range streams {
+			if strings.Contains(f.Quality, "video/") {
+				if f.URLs[0].Ext == "webm" {
+					f.Size += audioWebm.Size
+					f.URLs = append(f.URLs, audioWebm)
+				} else {
+					f.Size += audio.Size
+					f.URLs = append(f.URLs, audio)
+				}
+				streams[itag] = f
+			}
+		}
+
+		// fmt.Printf("The length of streams: %d\n", len(streams))
+		captionURL := ""
+		if len(anotherPlayerResponse.Captions.PlayerCaptionsTracklistRenderer.CaptionTracks) > 0 {
+			captionURL = anotherPlayerResponse.Captions.PlayerCaptionsTracklistRenderer.CaptionTracks[0].BaseURL
+		}
+
+		return downloader.Data{
+			Site:       "YouTube youtube.com",
+			Title:      anotherPlayerResponse.VideoDetails.Title,
+			Type:       "video",
+			Streams:    streams,
+			URL:        uri,
+			Thumbnail:  anotherPlayerResponse.VideoDetails.Thumbnail.Thumbnails[1].URL,
+			Length:     anotherPlayerResponse.VideoDetails.LengthSeconds,
+			CaptionURL: captionURL,
+		}, nil
 	}
-	return downloader.Data{}, errors.New("not end")
+	return downloader.Data{}, errors.New("can not parse video")
+}
+
+func getBaseJS(cacheJL *cache.Cache) string {
+	baseJS, found := cacheJL.Get(generalBaseJSURLKey)
+	if !found {
+		return generalBaseJSURL
+	}
+	return baseJS.(string)
 }
