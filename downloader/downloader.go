@@ -66,7 +66,6 @@ func writeFile(destURL string, file *os.File, headers map[string]string, bar *pb
 	)
 	// cacheJL.Set(token+"d", int64(0), time.Minute*10)
 	res, err = request.Request(http.MethodGet, destURL, nil, headers, config)
-	// fmt.Println("lalala")
 	if err != nil {
 		fmt.Println(err.Error())
 		return 0, err
@@ -208,9 +207,6 @@ Loop:
 		fmt.Printf("Download failed: %v\n", err)
 		return err
 	}
-	// fmt.Printf("Download finished, the size is: %d\tthe file is: %s\n", resp.BytesComplete(), fileName)
-	// dSize, _ := cacheJL.Get(token + "d")
-	// fmt.Printf("downloaded size: %d\n", dSize.(int64))
 	return nil
 }
 
@@ -275,7 +271,6 @@ func Save(urlData URL, refer, fileName string, bar *pb.ProgressBar, chunkSizeMB 
 	} else {
 		// file, fileError = os.Create(tempFilePath)
 		file, fileError = os.OpenFile(tempFilePath, os.O_CREATE|os.O_APPEND|os.O_RDWR, 0644)
-		// fmt.Println(tempFilePath)
 	}
 	if fileError != nil {
 		return fileError
@@ -429,6 +424,7 @@ func Download(v Data, refer string, chunkSizeMB int, cacheJL *cache.Cache, token
 	if mergedFileExists {
 		fmt.Printf("%s: file already exists, skipping\n", mergedFilePath)
 		cacheJL.Set(token+"d", data.Size, time.Minute*60)
+		tryToDownloadSrt(v, config, title, cacheJL, token)
 		return nil
 	}
 	bar := progressBar(data.Size)
@@ -447,6 +443,8 @@ func Download(v Data, refer string, chunkSizeMB int, cacheJL *cache.Cache, token
 	// multiple fragments
 	errs := make([]error, 0)
 	parts := make([]string, len(data.URLs))
+	// try to download video caption
+	go tryToDownloadSrt(v, config, title, cacheJL, token)
 	for index, url := range data.URLs {
 		partFileName := fmt.Sprintf("%s[%d]", title, index)
 		partFilePath, err := utils.FilePath(partFileName, url.Ext, false, config)
@@ -484,15 +482,6 @@ func Download(v Data, refer string, chunkSizeMB int, cacheJL *cache.Cache, token
 		return err
 	}
 
-	// try to download video caption
-	if v.CaptionURL != "" {
-		captionHTML, _ := request.Get(v.CaptionURL, "", nil, config)
-		ioutil.WriteFile("caption_html.html", []byte(captionHTML), 0644)
-		srtPath, err := utils.FilePath(title, "srt", false, config)
-		if err == nil {
-			downloadSrt(captionHTML, srtPath, cacheJL, token)
-		}
-	}
 	return nil
 }
 
@@ -500,12 +489,22 @@ func splitVideoQuality(quality string) string {
 	return strings.Split(quality, " ")[0]
 }
 
-func downloadSrt(str string, name string, cacheJL *cache.Cache, token string) {
-	if _, err := os.Stat(name); err == nil {
-		// file exists
-		cacheJL.Set(token+"cs", name, time.Hour*1)
+func tryToDownloadSrt(v Data, config myconfig.Config, title string, cacheJL *cache.Cache, token string) {
+	if v.CaptionURL == "" {
 		return
 	}
+	srtPath, err := utils.FilePath(title, "srt", false, config)
+	if _, err := os.Stat(srtPath); err == nil {
+		cacheJL.Set(token+"cs", srtPath, time.Hour*1)
+		return
+	}
+	captionHTML, _ := request.Get(v.CaptionURL, "", nil, config)
+	if err == nil {
+		downloadSrt(captionHTML, srtPath, cacheJL, token)
+	}
+}
+
+func downloadSrt(str string, name string, cacheJL *cache.Cache, token string) {
 	var caption Transcript
 	err := xml.Unmarshal([]byte(str), &caption)
 	if err != nil {
