@@ -3,6 +3,7 @@ package twitter
 import (
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"strconv"
 	"strings"
 
@@ -27,12 +28,18 @@ func Extract(uri string, config myconfig.Config) ([]downloader.Data, error) {
 	if err != nil {
 		return downloader.EmptyList, err
 	}
-	// ioutil.WriteFile("E:/twitter.html", []byte(html), 0644)
+	ioutil.WriteFile("twitter.html", []byte(html), 0644)
 	usernameArr := utils.MatchOneOf(html, `property="og:title"\s+content="(.+)"`)
 	if len(usernameArr) < 2 {
 		return downloader.EmptyList, err
 	}
 	username := usernameArr[1]
+
+	thumbnail := myconfig.DefaultThumbnail
+	thumb := utils.MatchOneOf(html, `meta\s*property="og:image" content="(.+?)">`)
+	if thumb != nil {
+		thumbnail = thumb[1]
+	}
 
 	tweetIDArr := utils.MatchOneOf(uri, `(status|statuses)/(\d+)`)
 	if len(tweetIDArr) < 3 {
@@ -49,18 +56,19 @@ func Extract(uri string, config myconfig.Config) ([]downloader.Data, error) {
 	if err != nil {
 		return downloader.EmptyList, err
 	}
+	ioutil.WriteFile("twitter.json", []byte(jsonString), 0644)
 	var twitterData twitter
 	json.Unmarshal([]byte(jsonString), &twitterData)
 	twitterData.TweetID = tweetID
 	twitterData.Username = username
-	extractedData, err := download(twitterData, uri, config)
+	extractedData, err := download(twitterData, uri, config, thumbnail)
 	if err != nil {
 		return downloader.EmptyList, err
 	}
 	return extractedData, nil
 }
 
-func download(data twitter, uri string, config myconfig.Config) ([]downloader.Data, error) {
+func download(data twitter, uri string, config myconfig.Config, thumbnail string) ([]downloader.Data, error) {
 	var (
 		err  error
 		size int64
@@ -125,11 +133,12 @@ func download(data twitter, uri string, config myconfig.Config) ([]downloader.Da
 
 	return []downloader.Data{
 		{
-			Site:    "Twitter twitter.com",
-			Title:   fmt.Sprintf("%s %s", data.Username, data.TweetID),
-			Type:    "video",
-			Streams: streams,
-			URL:     uri,
+			Site:      "Twitter twitter.com",
+			Title:     fmt.Sprintf("%s %s", data.Username, data.TweetID),
+			Type:      "video",
+			Streams:   streams,
+			URL:       uri,
+			Thumbnail: thumbnail,
 		},
 	}, nil
 }

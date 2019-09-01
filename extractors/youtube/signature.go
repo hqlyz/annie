@@ -118,7 +118,7 @@ func getSigTokens(htmlPlayerFile string, cacheJL *cache.Cache, config myconfig.C
 		if err != nil {
 			return nil, err
 		}
-		cacheJL.Set(youtubeSigKey, body, time.Hour*1)
+		cacheJL.Set(youtubeSigKey, body, time.Hour*12)
 	} else {
 		body = baseJL.(string)
 	}

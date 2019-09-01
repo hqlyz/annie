@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"net/url"
 	"strconv"
 	"strings"
@@ -85,6 +84,7 @@ type adaptiveFormatsItem struct {
 	MimeType      string `json:"mimeType"`
 	ContentLength string `json:"contentLength"`
 	Quality       string `json:"qualityLabel"`
+	Cipher        string `json:"cipher"`
 }
 
 const referer = "https://www.youtube.com"
@@ -193,7 +193,7 @@ func youtubeDownload(uri string, cacheJL *cache.Cache, config myconfig.Config) d
 		vid[1],
 	)
 	html, err := request.Get(videoURL, referer, nil, config)
-	ioutil.WriteFile("youtube.html", []byte(html), 0666)
+	// ioutil.WriteFile("youtube.html", []byte(html), 0666)
 	if err != nil {
 		return downloader.EmptyData(uri, err)
 	}
@@ -276,12 +276,6 @@ func extractVideoURLS(data youtubeData, referer string, cacheJL *cache.Cache, co
 		} else {
 			quality = streamType
 		}
-		// if isAudio {
-		// 	// audio file use m4a extension
-		// 	ext = "m4a"
-		// } else {
-		// 	ext = utils.MatchOneOf(streamType, `(\w+)/(\w+);`)[2]
-		// }
 		ext = utils.MatchOneOf(streamType, `(\w+)/(\w+);`)[2]
 		realURL, err := getDownloadURL(stream, data.Assets.JS, cacheJL, config)
 		if err != nil {
@@ -352,11 +346,10 @@ func anotherParseMethod(vid string, referer string, config myconfig.Config, cach
 	fmt.Println("try another method to parse youtube video")
 	destURL := fmt.Sprintf("https://www.youtube.com/get_video_info?video_id=%s&eurl=https%%3A%%2F%%2Fy", vid)
 	html2, err := request.Get(destURL, referer, nil, config)
-	// fmt.Println(destURL)
 	if err != nil {
 		return downloader.Data{}, err
 	}
-	ioutil.WriteFile("youtube2.html", []byte(html2), 0644)
+	// ioutil.WriteFile("youtube2.html", []byte(html2), 0644)
 	videoInfo, err := url.ParseQuery(html2)
 	if err != nil {
 		return downloader.Data{}, err
@@ -366,7 +359,7 @@ func anotherParseMethod(vid string, referer string, config myconfig.Config, cach
 		if err != nil {
 			return downloader.Data{}, err
 		}
-		ioutil.WriteFile("player_response.json", []byte(playerResponseStr), 0644)
+		// ioutil.WriteFile("player_response.json", []byte(playerResponseStr), 0644)
 		var anotherPlayerResponse anotherPlayerResponseData
 		err = json.Unmarshal([]byte(playerResponseStr), &anotherPlayerResponse)
 		if err != nil {
@@ -374,6 +367,7 @@ func anotherParseMethod(vid string, referer string, config myconfig.Config, cach
 			return downloader.Data{}, err
 		}
 
+		// if anotherPlayerResponse.StreamData.AdaptiveFormats[0].URL != "" {
 		streams := make(map[string]downloader.Stream)
 		var ext string
 		var audio downloader.URL
@@ -382,11 +376,6 @@ func anotherParseMethod(vid string, referer string, config myconfig.Config, cach
 		var audioWebmFound bool
 
 		for _, s := range anotherPlayerResponse.StreamData.AdaptiveFormats {
-			stream, err := url.ParseQuery(s.URL)
-			if err != nil {
-				return downloader.Data{}, err
-			}
-			stream.Set("url", s.URL)
 			itag := strconv.Itoa(s.Itag)
 			streamType := s.MimeType
 			isAudio := strings.HasPrefix(streamType, "audio")
@@ -398,10 +387,6 @@ func anotherParseMethod(vid string, referer string, config myconfig.Config, cach
 				quality = streamType
 			}
 			ext = utils.MatchOneOf(streamType, `(\w+)/(\w+);`)[2]
-			// realURL, err := getDownloadURL(stream, getBaseJS(cacheJL), cacheJL, config)
-			// if err != nil {
-			// 	return downloader.Data{}, err
-			// }
 			realURL := s.URL
 			sizeStr := s.ContentLength
 			size := int64(0)
@@ -446,11 +431,13 @@ func anotherParseMethod(vid string, referer string, config myconfig.Config, cach
 			}
 		}
 
-		// fmt.Printf("The length of streams: %d\n", len(streams))
 		captionURL := ""
 		if len(anotherPlayerResponse.Captions.PlayerCaptionsTracklistRenderer.CaptionTracks) > 0 {
 			captionURL = anotherPlayerResponse.Captions.PlayerCaptionsTracklistRenderer.CaptionTracks[0].BaseURL
 		}
+
+		// outStr, _ := json.Marshal(streams)
+		// ioutil.WriteFile("downloader_data.json", outStr, 0644)
 
 		return downloader.Data{
 			Site:       "YouTube youtube.com",
@@ -462,6 +449,7 @@ func anotherParseMethod(vid string, referer string, config myconfig.Config, cach
 			Length:     anotherPlayerResponse.VideoDetails.LengthSeconds,
 			CaptionURL: captionURL,
 		}, nil
+		// }
 	}
 	return downloader.Data{}, errors.New("can not parse video")
 }

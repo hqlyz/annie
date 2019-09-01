@@ -64,7 +64,7 @@ func writeFile(destURL string, file *os.File, headers map[string]string, bar *pb
 		res *http.Response
 		err error
 	)
-	// cacheJL.Set(token+"d", int64(0), time.Minute*10)
+	cacheJL.Set(token+"d", int64(0), time.Minute*10)
 	res, err = request.Request(http.MethodGet, destURL, nil, headers, config)
 	if err != nil {
 		fmt.Println(err.Error())
@@ -73,6 +73,28 @@ func writeFile(destURL string, file *os.File, headers map[string]string, bar *pb
 	defer res.Body.Close()
 	l := res.Header.Get("Content-Length")
 	length, _ := strconv.ParseInt(l, 10, 64)
+	fmt.Printf("dest url: %s\n", destURL)
+	// client := grab.NewClient()
+	// if config.Proxy != "" {
+	// 	httpProxy, err := url.Parse(config.Proxy)
+	// 	if err != nil {
+	// 		return 0, err
+	// 	}
+	// 	client.HTTPClient = &http.Client{
+	// 		Transport: &http.Transport{
+	// 			Proxy: http.ProxyURL(httpProxy),
+	// 		},
+	// 	}
+	// }
+	// req, _ := grab.NewRequest("", destURL)
+	// for k, v := range headers {
+	// 	req.HTTPRequest.Header.Set(k, v)
+	// }
+	// resp := client.Do(req)
+	// time.Sleep(time.Second * 10)
+	// length := resp.Size()
+	fmt.Printf("file size: %d\n", length)
+	// resp.Cancel()
 	var goroutineNum int
 	if length <= int64(10*mBytes) {
 		goroutineNum = int(math.Ceil(float64(length) / float64(mBytes)))
