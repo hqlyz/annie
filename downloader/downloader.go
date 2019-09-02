@@ -553,7 +553,7 @@ func downloadSrt(str string, name string, cacheJL *cache.Cache, token string) {
 		tempStr += fmt.Sprintf("%s --> %s\n%s\n\n", startStr, endStr, v.Content)
 		outputStr += tempStr
 	}
-	ioutil.WriteFile(name, []byte(outputStr), 0644)
+	// ioutil.WriteFile(name, []byte(outputStr), 0644)
 	cacheJL.Set(token+"cs", name, time.Hour*1)
 }
 

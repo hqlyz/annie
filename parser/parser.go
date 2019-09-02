@@ -90,7 +90,7 @@ func GetSearchVideosInfo(keyword string, config myconfig.Config) []SearchVideoDa
 	if err != nil {
 		return nil
 	}
-	ioutil.WriteFile("search_html.html", []byte(html), 0644)
+	// ioutil.WriteFile("search_html.html", []byte(html), 0644)
 	titles := utils.MatchAll(html, `<h3 class="LC20lb">(.+?)</h3>`)
 	urls := utils.MatchAll(html, `<div class="r"><a href="(.+?)"`)
 	imgs1 := utils.MatchAll(html, `var s='(.+?)';var ii=\['vidthumb`)

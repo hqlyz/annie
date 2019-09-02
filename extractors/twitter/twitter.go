@@ -28,7 +28,7 @@ func Extract(uri string, config myconfig.Config) ([]downloader.Data, error) {
 	if err != nil {
 		return downloader.EmptyList, err
 	}
-	ioutil.WriteFile("twitter.html", []byte(html), 0644)
+	// ioutil.WriteFile("twitter.html", []byte(html), 0644)
 	usernameArr := utils.MatchOneOf(html, `property="og:title"\s+content="(.+)"`)
 	if len(usernameArr) < 2 {
 		return downloader.EmptyList, err
@@ -56,7 +56,7 @@ func Extract(uri string, config myconfig.Config) ([]downloader.Data, error) {
 	if err != nil {
 		return downloader.EmptyList, err
 	}
-	ioutil.WriteFile("twitter.json", []byte(jsonString), 0644)
+	// ioutil.WriteFile("twitter.json", []byte(jsonString), 0644)
 	var twitterData twitter
 	json.Unmarshal([]byte(jsonString), &twitterData)
 	twitterData.TweetID = tweetID
@@ -139,6 +139,7 @@ func download(data twitter, uri string, config myconfig.Config, thumbnail string
 			Streams:   streams,
 			URL:       uri,
 			Thumbnail: thumbnail,
+			Length:    "0",
 		},
 	}, nil
 }

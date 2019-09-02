@@ -31,7 +31,7 @@ func Extract(url string, config myconfig.Config) ([]downloader.Data, error) {
 	if err != nil {
 		return downloader.EmptyList, err
 	}
-	ioutil.WriteFile("ph_html.html", []byte(html), 0666)
+	// ioutil.WriteFile("ph_html.html", []byte(html), 0666)
 	desc := utils.MatchOneOf(html, `<span class="inlineFree">(.+?)</span>`)
 	if desc != nil {
 		title = desc[1]
