@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"math"
 	"net/http"
 	"net/url"
@@ -491,20 +492,26 @@ func splitVideoQuality(quality string) string {
 func tryToDownloadSrt(v Data, config myconfig.Config, title string, cacheJL *cache.Cache, token string) {
 	fmt.Println("try to download video caption")
 	if v.CaptionURL == "" {
+		fmt.Println("the caption url is empty, skip downloading caption")
 		return
 	}
+	// fmt.Printf("the caption url is: %s\n", v.CaptionURL)
 	srtPath, err := utils.FilePath(title, "srt", false, config)
 	if _, err := os.Stat(srtPath); err == nil {
 		cacheJL.Set(token+"cs", srtPath, time.Hour*1)
 		return
 	}
-	captionHTML, _ := request.Get(v.CaptionURL, "", nil, config)
-	if err == nil {
-		downloadSrt(captionHTML, srtPath, cacheJL, token)
+	captionHTML, err := request.Get(v.CaptionURL, "", nil, config)
+	// fmt.Printf("the caption text: %s\n", captionHTML)
+	if err != nil {
+		fmt.Printf("get caption error: %s\n", err.Error())
+		return
 	}
+	downloadSrt(captionHTML, srtPath, cacheJL, token)
 }
 
 func downloadSrt(str string, name string, cacheJL *cache.Cache, token string) {
+	// ioutil.WriteFile("yt_srt.txt", []byte(str), 0644)
 	var caption Transcript
 	err := xml.Unmarshal([]byte(str), &caption)
 	if err != nil {
@@ -531,7 +538,7 @@ func downloadSrt(str string, name string, cacheJL *cache.Cache, token string) {
 		tempStr += fmt.Sprintf("%s --> %s\n%s\n\n", startStr, endStr, v.Content)
 		outputStr += tempStr
 	}
-	// ioutil.WriteFile(name, []byte(outputStr), 0644)
+	ioutil.WriteFile(name, []byte(outputStr), 0644)
 	cacheJL.Set(token+"cs", name, time.Hour*1)
 }
 
