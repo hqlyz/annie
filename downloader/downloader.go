@@ -72,28 +72,6 @@ func writeFile(destURL string, file *os.File, headers map[string]string, bar *pb
 	defer res.Body.Close()
 	l := res.Header.Get("Content-Length")
 	length, _ := strconv.ParseInt(l, 10, 64)
-	fmt.Printf("dest url: %s\n", destURL)
-	// client := grab.NewClient()
-	// if config.Proxy != "" {
-	// 	httpProxy, err := url.Parse(config.Proxy)
-	// 	if err != nil {
-	// 		return 0, err
-	// 	}
-	// 	client.HTTPClient = &http.Client{
-	// 		Transport: &http.Transport{
-	// 			Proxy: http.ProxyURL(httpProxy),
-	// 		},
-	// 	}
-	// }
-	// req, _ := grab.NewRequest("", destURL)
-	// for k, v := range headers {
-	// 	req.HTTPRequest.Header.Set(k, v)
-	// }
-	// resp := client.Do(req)
-	// time.Sleep(time.Second * 10)
-	// length := resp.Size()
-	fmt.Printf("file size: %d\n", length)
-	// resp.Cancel()
 	var goroutineNum int
 	if length <= int64(10*mBytes) {
 		goroutineNum = int(math.Ceil(float64(length) / float64(mBytes)))
@@ -186,12 +164,12 @@ func fragmentDownload(destURL string, fileName string, headers map[string]string
 
 	fi, err := os.Stat(fileName)
 	resp := client.Do(req)
-	if err != nil {
-		fmt.Printf("fi.Size(): 0\n")
-	} else {
-		fmt.Printf("fi.Size(): %d\n", fi.Size())
-	}
-	fmt.Printf("resp.Size(): %d\n", resp.Size())
+	// if err != nil {
+	// 	fmt.Printf("fi.Size(): 0\n")
+	// } else {
+	// 	fmt.Printf("fi.Size(): %d\n", fi.Size())
+	// }
+	// fmt.Printf("resp.Size(): %d\n", resp.Size())
 	// if file already exsits, skip downloading
 	if err == nil && fi.Size() == resp.Size() {
 		fmt.Println("the file already exsits")
@@ -511,6 +489,7 @@ func splitVideoQuality(quality string) string {
 }
 
 func tryToDownloadSrt(v Data, config myconfig.Config, title string, cacheJL *cache.Cache, token string) {
+	fmt.Println("try to download video caption")
 	if v.CaptionURL == "" {
 		return
 	}
