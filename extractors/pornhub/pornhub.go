@@ -3,7 +3,6 @@ package pornhub
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"strconv"
 
 	"github.com/hqlyz/annie/myconfig"
