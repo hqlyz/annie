@@ -535,7 +535,7 @@ func downloadSrt(str string, name string, cacheJL *cache.Cache, token string) {
 		m, _ = divMod(int(end), 60)
 		h, m = divMod(m, 60)
 		endStr := strings.Replace(fmt.Sprintf("%02d:%02d:%06.3f", h, m, (end-float64(h)*3600-float64(m)*60)), ".", ",", -1)
-		tempStr += fmt.Sprintf("%s --> %s\n%s\n\n", startStr, endStr, v.Content)
+		tempStr += fmt.Sprintf("%s --> %s\n%s\n\n", startStr, endStr, strings.Replace(v.Content, "&amp;#39;", "'", -1))
 		outputStr += tempStr
 	}
 	ioutil.WriteFile(name, []byte(outputStr), 0644)
